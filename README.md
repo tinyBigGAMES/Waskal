@@ -1,0 +1,2 @@
+# Waskal
+Waskal Programming Language
