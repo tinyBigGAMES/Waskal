@@ -32,6 +32,9 @@ The output is `hello.html`. Open it in a browser. That is the deployment.
 
 ![Waskal Infographic](media/Infographic.jpg)
 
+
+https://github.com/user-attachments/assets/a4777b60-1271-47f6-87bc-dc0aae9514ca
+
 <!-- Drag intro.mp4 into a GitHub issue or PR comment, then paste the generated user-attachments URL here -->
 
 </div>
