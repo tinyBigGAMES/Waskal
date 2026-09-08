@@ -80,3 +80,19 @@ __recovery/
 
 # Boss dependency manager vendor folder https://github.com/HashLoad/boss
 modules/
+
+# repo
+_checkpoint.cmd
+_checkpoint_base.cmd
+_distro.cmd
+bin/build-testbed.cmd
+/bin/output
+checkpoint.yml
+checkpoint.zip
+checkpoint_base.zip
+distro.yml
+!bin/res/*
+!bin/res/wasm/esbuild.exe
+!bin/res/wasm/wasm-merge.exe
+!bin/res/wasm/wasm-opt.exe
+
