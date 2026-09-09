@@ -2,7 +2,7 @@
 
 ![Waskal](media/logo.jpg)
 
-[![Discord](https://img.shields.io/discord/1457450179254026250?style=for-the-badge&logo=discord&label=Discord)](https://discord.gg/Wb6z8Wam7p) [![Follow on Bluesky](https://img.shields.io/badge/Bluesky-tinyBigGAMES-blue?style=for-the-badge&logo=bluesky)](https://bsky.app/profile/tinybiggames.com)
+[![Discord](https://img.shields.io/discord/1457450179254026250?style=for-the-badge&logo=discord&label=Discord)](https://discord.gg/Wb6z8Wam7p) [![Facebook Group](https://img.shields.io/badge/Facebook-Waskal-blue?style=for-the-badge&logo=facebook)](https://www.facebook.com/groups/waskal) [![Follow on Bluesky](https://img.shields.io/badge/Bluesky-tinyBigGAMES-blue?style=for-the-badge&logo=bluesky)](https://bsky.app/profile/tinybiggames.com)
 
 **Write Pascal. Ship one file. Runs everywhere.**
 
@@ -230,6 +230,7 @@ Apache 2.0 is a permissive open source license that lets you use, modify, and di
 - 🐞 [Issues](https://github.com/tinyBigGAMES/Waskal/issues)
 - 📖 [Documentation](https://github.com/tinyBigGAMES/Waskal/blob/main/docs/Waskal.md)
 - 💬 [Discord](https://discord.gg/Wb6z8Wam7p)
+- 👥 [Facebook Group](https://www.facebook.com/groups/waskal)
 - 🦋 [Bluesky](https://bsky.app/profile/tinybiggames.com)
 - 🎮 [tinyBigGAMES](https://tinybiggames.com)
 
