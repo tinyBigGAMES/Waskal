@@ -253,7 +253,6 @@ Apache 2.0 is a permissive open source license that lets you use, modify, and di
 
 **Waskal**&#8482; Programming Language
 
-Copyright &copy; 2026-present tinyBigGAMES&#8482; LLC
-All Rights Reserved.
+Copyright &copy; 2026-present tinyBigGAMES&#8482; LLC<br/>All Rights Reserved.
 
 </div>
