@@ -43,7 +43,7 @@ The output is `hello.html`. Open it in a browser. That is the deployment.
 
 
 
-https://github.com/user-attachments/assets/ec889a90-011b-4923-b723-954c127463bc
+https://github.com/user-attachments/assets/ee828803-6c16-49be-bca4-dae4c4fbf5f8
 
 
 <!-- Drag intro.mp4 into a GitHub issue or PR comment, then paste the generated user-attachments URL here -->
