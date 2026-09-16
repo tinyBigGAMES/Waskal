@@ -1,0 +1,69 @@
+/*******************************************************************************
+  Waskal™ Programming Language
+
+  Copyright © 2026-present tinyBigGAMES™ LLC
+  All Rights Reserved.
+
+  https://waskal.org
+
+  See LICENSE for license information
+ -------------------------------------------------------------------------------
+  probe_cstr2str.wkl
+  Waskal(tm) Programming Language
+
+
+  https://waskal.org
+
+  See LICENSE for license information
+  
+
+  Expect: "hello from js", "hello from js", len = 13, "copy me", len = 7,
+  Leaked: 0.
+*******************************************************************************/
+
+module exe probe_cstr2str;
+
+@addlibrarypath "$P:res/tests/libs";
+
+routine GetGreetingInto(buf: ptr to char; bufSize: int64): int64;
+  external "cstr2str" name "GetGreeting";
+routine CStrLen(p: ptr to char): int64;
+  external "cstr2str" name "CStrLen";
+
+var
+  needed: int64;
+  buf: ptr to char;
+  s: string;
+  t: string;
+  raw: ptr to char;
+  n: int64;
+begin
+  // 1. JS fills a caller buffer; implicit ptr to char -> string; free buffer
+  needed := GetGreetingInto(nil, 0);
+  getmem(buf);
+  resizemem(buf, needed + 1);
+  GetGreetingInto(buf, needed + 1);
+  s := buf;
+  freemem(buf);
+  println("%s", cstr(s));
+
+  // 2. Reassign a live string from a pointer (old value released, no leak)
+  t := "placeholder";
+  getmem(buf);
+  resizemem(buf, needed + 1);
+  GetGreetingInto(buf, needed + 1);
+  t := buf;
+  freemem(buf);
+  println("%s", cstr(t));
+  n := CStrLen(t);
+  println("len = %d", n);
+
+  // 3. utf8(s): caller-owned copy, valid after s changes, must be freed
+  s := "copy me";
+  raw := utf8(s);
+  s := "changed";
+  println("%s", raw);
+  n := CStrLen(raw);
+  println("len = %d", n);
+  freemem(raw);
+end.

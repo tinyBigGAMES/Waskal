@@ -1,0 +1,27 @@
+/*******************************************************************************
+  Waskal™ Programming Language
+
+  Copyright © 2026-present tinyBigGAMES™ LLC
+  All Rights Reserved.
+
+  https://waskal.org
+
+  See LICENSE for license information
+ -------------------------------------------------------------------------------
+  probe_neg_arrbounds.wkl
+
+  Expected-failure test for const-expression array bounds. MUST FAIL to
+  compile with SEM008 "Array high bound must be a constant integer
+  expression". Excluded from build-all-tests.cmd (probe_neg_* skip).
+  Run manually: waskal.exe res\tests\probe\probe_neg_arrbounds.wkl
+*******************************************************************************/
+
+module exe neg_arrbounds;
+
+var count: int32;
+var bad: array[0..count-1] of int32;
+
+begin
+  count := 10;
+  bad[0] := 1;
+end.

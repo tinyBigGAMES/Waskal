@@ -1,0 +1,63 @@
+/*******************************************************************************
+  Waskal™ Programming Language
+
+  Copyright © 2026-present tinyBigGAMES™ LLC
+  All Rights Reserved.
+
+  https://waskal.org
+
+  See LICENSE for license information
+ -------------------------------------------------------------------------------
+  frame_loop.wkl
+  Validates the frame loop round-trip: Update runs at a fixed step so the
+  square moves at 120 px/s regardless of refresh rate, Render draws once per
+  tick, "setup done" prints before any frame, and after 600 updates the loop
+  stops, the OnShutdown handler prints exactly once, then _shutdown teardown
+  runs and the leak report shows 0.
+*******************************************************************************/
+
+module exe frame_loop;
+
+@favicon "$P:res/assets/icons/waskal.ico";
+
+import 
+  canvas2d,
+  frame;
+
+var
+  x: float64;
+  updates: int64;
+
+routine Update(const dt: float64);
+begin
+  x := x + 120.0 * dt;
+  if x > 800.0 then
+    x := 0.0;
+  end;
+
+  updates := updates + 1;
+  if updates = 600 then
+    frame.Stop();
+  end;
+end;
+
+routine Render();
+begin
+  canvas2d.SetFillStyle("#000");
+  canvas2d.FillRect(0.0, 0.0, 800.0, 600.0);
+  canvas2d.SetFillStyle("#0f0");
+  canvas2d.FillRect(x, 280.0, 40.0, 40.0);
+end;
+
+routine Shutdown();
+begin
+  println("shutdown handler");
+end;
+
+begin
+  x := 0.0;
+  updates := 0;
+  canvas2d.Init(800, 600);
+  println("setup done, loop running");  
+  frame.Run(Update, Render, Shutdown);
+end.

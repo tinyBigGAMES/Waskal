@@ -1,0 +1,45 @@
+/*******************************************************************************
+  Waskal™ Programming Language
+
+  Copyright © 2026-present tinyBigGAMES™ LLC
+  All Rights Reserved.
+
+  https://waskal.org
+
+  See LICENSE for license information
+ -------------------------------------------------------------------------------
+  probe_string_lifetime.wkl
+*******************************************************************************/
+
+module exe probe_string_lifetime;
+
+@favicon "$P:res/assets/icons/waskal.ico";
+
+begin
+  // Path 1: literal assignment
+  var s1: string;
+  s1 := "hello";
+  println("%s", s1);
+
+  // Path 2: concat
+  var s2: string;
+  s2 := "hello " + "world";
+  println("%s", s2);
+
+  // Path 3: reassignment (tests Release of old value)
+  s1 := "goodbye";
+  println("%s", s1);
+
+  // Path 4: variable-to-variable assignment (tests AddRef)
+  var s3: string;
+  s3 := s2;
+  println("%s", s3);
+
+  // Path 5: println with bare literal
+  println("bare literal");
+
+  // Path 6: comparison
+  if s1 = "goodbye" then
+    println("match");
+  end
+end.

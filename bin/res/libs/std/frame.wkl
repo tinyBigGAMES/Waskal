@@ -1,0 +1,48 @@
+/*******************************************************************************
+  Waskal™ Programming Language
+
+  Copyright © 2026-present tinyBigGAMES™ LLC
+  All Rights Reserved.
+
+  https://waskal.org
+
+  See LICENSE for license information
+ -------------------------------------------------------------------------------
+  frame.wkl
+
+  Wraps the frame.js shim: a requestAnimationFrame loop with a fixed-step
+  update and a variable-rate render. The loop runs after the main program
+  returns; the runtime calls _shutdown when it ends (Stop, trap, or the page
+  closing), which fires Run's shutdown handler before teardown. Any handler
+  passed to Run may be nil and is then skipped.
+*******************************************************************************/
+
+module unit frame;
+
+type
+  UpdateProc = routine(const dt: float64);      // fixed step, 0..N calls per tick
+  RenderProc = routine();                       // once per display refresh
+  ShutdownProc = routine();
+
+public routine Run(const update: UpdateProc; const render: RenderProc;
+  const shutdown: ShutdownProc);
+  external "frame" name "Run";
+
+// Fixed update rate in frames per second (default 60). Update always runs
+// this many times per real second with dt = 1/fps, whatever the display does.
+public routine SetTargetFPS(const fps: float64);
+  external "frame" name "SetTargetFPS";
+
+public routine Stop();
+  external "frame" name "Stop";
+
+public routine IsRunning(): bool;
+  external "frame" name "IsRunning";
+
+public routine Time(): float64;
+  external "frame" name "Time";
+
+public routine FPS(): float64;
+  external "frame" name "FPS";
+
+end.

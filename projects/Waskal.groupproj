@@ -1,0 +1,36 @@
+﻿<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+    <PropertyGroup>
+        <ProjectGuid>{787B81A1-D3BD-4929-A8F0-DE21AA54C541}</ProjectGuid>
+    </PropertyGroup>
+    <ItemGroup>
+        <Projects Include="waskal\waskal.dproj">
+            <Dependencies/>
+        </Projects>
+    </ItemGroup>
+    <ProjectExtensions>
+        <Borland.Personality>Default.Personality.12</Borland.Personality>
+        <Borland.ProjectType/>
+        <BorlandProject>
+            <Default.Personality/>
+        </BorlandProject>
+    </ProjectExtensions>
+    <Target Name="waskal">
+        <MSBuild Projects="waskal\waskal.dproj"/>
+    </Target>
+    <Target Name="waskal:Clean">
+        <MSBuild Projects="waskal\waskal.dproj" Targets="Clean"/>
+    </Target>
+    <Target Name="waskal:Make">
+        <MSBuild Projects="waskal\waskal.dproj" Targets="Make"/>
+    </Target>
+    <Target Name="Build">
+        <CallTarget Targets="waskal"/>
+    </Target>
+    <Target Name="Clean">
+        <CallTarget Targets="waskal:Clean"/>
+    </Target>
+    <Target Name="Make">
+        <CallTarget Targets="waskal:Make"/>
+    </Target>
+    <Import Project="$(BDS)\Bin\CodeGear.Group.Targets" Condition="Exists('$(BDS)\Bin\CodeGear.Group.Targets')"/>
+</Project>

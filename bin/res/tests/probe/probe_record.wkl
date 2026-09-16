@@ -1,0 +1,140 @@
+/*******************************************************************************
+  Waskal™ Programming Language
+
+  Copyright © 2026-present tinyBigGAMES™ LLC
+  All Rights Reserved.
+
+  See LICENSE for license information
+ -------------------------------------------------------------------------------
+  probe_record.wkl
+  Record feature probe. Grows as atoms land.
+*******************************************************************************/
+
+module exe probe_record;
+
+type
+  // Plain record
+  Point = record
+    x: int32;
+    y: int32;
+  end;
+
+  // String fields
+  Person = record
+    name: string;
+    age: int32;
+  end;
+
+  // Packed record (Atom 2 parser, Atom 6 semantics)
+  PackedPair = record packed
+    a: int8;
+    b: int32;
+  end;
+
+  // Aligned record (Atom 2 parser, Atom 6 semantics)
+  Aligned32 = record align(32)
+    val: int32;
+  end;
+
+  // Inherited record (Atom 3/4)
+  Base = record
+    bx: int32;
+    by: int32;
+  end;
+
+  Derived = record(Base)
+    dz: int32;
+  end;
+
+  // Anonymous overlay inside record (Atom 5)
+  Tagged = record
+    tag: int32;
+    overlay
+      iVal: int64;
+      fVal: float64;
+    end;
+  end;
+
+  // Bit fields (Atom 7/8/9)
+  Flags = record
+    a: uint32 : 4;
+    b: uint32 : 4;
+    c: uint32 : 8;
+  end;
+
+  // Nested record for chained dot access (Atom 11)
+  Inner = record
+    iv: int32;
+    iw: int32;
+  end;
+
+  Outer = record
+    id: int32;
+    inner: Inner;
+  end;
+
+begin
+  // --- Plain record field read/write (Atom 1) ---
+  println("=== Plain Record ===");
+  var p: Point;
+  p.x := 10;
+  p.y := 20;
+  println("p.x = %d, p.y = %d", p.x, p.y);
+  println("sum = %d", p.x + p.y);
+
+  // --- Packed record (Atom 2) ---
+  println("=== Packed Record ===");
+  var pp: PackedPair;
+  pp.a := 1;
+  pp.b := 1000;
+  println("packed a=%d b=%d", pp.a, pp.b);
+
+  // --- Aligned record (Atom 2) ---
+  println("=== Aligned Record ===");
+  var al: Aligned32;
+  al.val := 77;
+  println("aligned val=%d", al.val);
+  println("size(Aligned32) = %lld", size(Aligned32));
+
+  // --- Inherited record (Atom 3/4) ---
+  println("=== Inherited Record ===");
+  var d: Derived;
+  d.bx := 100;
+  d.by := 200;
+  d.dz := 300;
+  println("d.bx=%d d.by=%d d.dz=%d", d.bx, d.by, d.dz);
+  println("sum=%d", d.bx + d.by + d.dz);
+
+  // --- Anonymous overlay (Atom 5) ---
+  println("=== Anonymous Overlay ===");
+  var t: Tagged;
+  t.tag := 1;
+  t.iVal := 42;
+  println("tag=%d iVal=%d", t.tag, t.iVal);
+  t.tag := 2;
+  t.fVal := 3.14;
+  println("tag=%d fVal=%f", t.tag, t.fVal);
+
+  // --- Bit fields (Atom 7/8/9) ---
+  println("=== Bit Fields ===");
+  var f: Flags;
+  f.a := 5;
+  f.b := 11;
+  f.c := 200;
+  println("f.a=%d f.b=%d f.c=%d", f.a, f.b, f.c);
+  println("size(Flags) = %lld", size(Flags));
+
+  // --- Record literal (Atom 10) ---
+  println("=== Record Literal ===");
+  var q: Point = Point(x: 42, y: 99);
+  println("q.x=%d q.y=%d", q.x, q.y);
+
+  // --- Chained dot access (Atom 11) ---
+  println("=== Chained Dot Access ===");
+  var o: Outer;
+  o.id := 1;
+  o.inner.iv := 42;
+  o.inner.iw := 99;
+  println("o.id=%d o.inner.iv=%d o.inner.iw=%d", o.id, o.inner.iv, o.inner.iw);
+
+end.

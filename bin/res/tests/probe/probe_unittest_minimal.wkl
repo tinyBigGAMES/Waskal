@@ -1,0 +1,17 @@
+/* EXITCODE: 0 */
+module exe probe_unittest_minimal;
+
+@unittestmode on;
+
+routine add(const a: int32; const b: int32): int32;
+begin
+  return a + b;
+end;
+
+begin
+end.
+
+test "one"
+begin
+  asserteq(3, add(1, 2));
+end;

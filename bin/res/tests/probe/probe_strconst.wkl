@@ -1,0 +1,47 @@
+/*******************************************************************************
+  Waskal™ Programming Language
+
+  Copyright © 2026-present tinyBigGAMES™ LLC
+  All Rights Reserved.
+
+  https://waskal.org
+
+  See LICENSE for license information
+ -------------------------------------------------------------------------------
+  probe_strconst.wkl
+  Typed + untyped string consts, exe + unit, printed and passed to a
+  ptr to char extern. Expect the four strings, then 9 11 10 12, Leaked: 0.
+*******************************************************************************/
+
+module exe probe_strconst;
+
+@addlibrarypath "$P:res/tests/libs";
+
+import probe_strconst_unit;
+
+routine CStrLen(p: ptr to char): int64;
+  external "strconst" name "CStrLen";
+
+const
+  EXE_TYPED: string = "exe typed";
+  EXE_UNTYPED = "exe untyped";
+
+var
+  n: int64;
+begin
+  // A statement before the first const read: crosses the per-statement
+  // temp cleanup boundary so a freed const shows up as garbage
+  n := 0;
+  println("%s", cstr(EXE_TYPED));
+  println("%s", cstr(EXE_UNTYPED));
+  println("%s", cstr(probe_strconst_unit.UNIT_TYPED));
+  println("%s", cstr(probe_strconst_unit.UNIT_UNTYPED));
+  n := CStrLen(EXE_TYPED);
+  println("len = %d", n);
+  n := CStrLen(EXE_UNTYPED);
+  println("len = %d", n);
+  n := CStrLen(probe_strconst_unit.UNIT_TYPED);
+  println("len = %d", n);
+  n := CStrLen(probe_strconst_unit.UNIT_UNTYPED);
+  println("len = %d", n);
+end.

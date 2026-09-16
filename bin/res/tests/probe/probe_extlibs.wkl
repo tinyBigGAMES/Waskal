@@ -1,0 +1,42 @@
+/*******************************************************************************
+  Waskal™ Programming Language
+
+  Copyright © 2026-present tinyBigGAMES™ LLC
+  All Rights Reserved.
+
+  https://waskal.org
+
+  See LICENSE for license information
+ -------------------------------------------------------------------------------
+  probe_extlibs.wkl
+  Waskal(tm) Programming Language
+
+
+  https://waskal.org
+
+  See LICENSE for license information
+
+  Tests .js and .wasm external library resolution via @addlibrarypath.
+  - mathjs.js:    JS host import (fully functional end-to-end)
+  - mathlib.wasm: Wasm external merged via wasm-merge
+*******************************************************************************/
+
+module exe probe_extlibs;
+
+@addlibrarypath "$P:res/tests/libs";
+
+// JS external -- resolved from mathjs.js in libs/
+routine JsAdd(a: int32; b: int32): int32;
+  external "mathjs" name "JsAdd";
+
+// Wasm external -- resolved from mathlib.wasm in libs/
+routine Add(a: int64; b: int64): int64;
+  external "mathlib" name "Add";
+
+var
+  r: int64;
+begin
+  println("JsAdd(2, 3) = %d", JsAdd(2, 3));
+  r := Add(10, 20);
+  println("Add(10, 20) = %d", r);
+end.

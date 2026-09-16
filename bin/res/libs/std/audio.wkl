@@ -1,0 +1,114 @@
+/*******************************************************************************
+  Waskal™ Programming Language
+
+  Copyright © 2026-present tinyBigGAMES™ LLC
+  All Rights Reserved.
+
+  https://waskal.org
+
+  See LICENSE for license information
+ -------------------------------------------------------------------------------
+  audio.wkl
+
+  Wraps the audio.js shim (Web Audio). Sounds are short effects decoded from
+  @asset bytes; each Play starts a Voice you can stop or tweak while it runs.
+  Music is a single streamed track (one at a time). Three buses: master,
+  sfx, music. Browsers refuse to make sound before the user clicks or presses
+  a key: LoadSound/LoadMusic are fine before that, Play returns 0 and
+  PlayMusic is queued until the first gesture. Poll IsReady() after loading
+  sounds; decoding is asynchronous. Nothing here raises.
+*******************************************************************************/
+
+module unit audio;
+
+public type
+  // JS object handles (int32 indexes into the shim's handle tables), 0 = none
+  Sound = int32;
+  Voice = int32;
+  Music = int32;
+
+// ---- Context ----
+
+// Tries to resume the audio context; true when it is running (sound allowed).
+public routine Unlock(): bool;
+  external "audio" name "Unlock";
+
+// True once every LoadSound decode has finished (success or failure).
+public routine IsReady(): bool;
+  external "audio" name "IsReady";
+
+// ---- Sounds (sfx) ----
+
+// Asset name as declared by @asset, e.g. "assets/audio/sfx/explo_rock.ogg".
+// Returns 0 when the asset is missing. Decoding is async: poll IsReady().
+public routine LoadSound(const asset: ptr to char): Sound;
+  external "audio" name "LoadSound";
+public routine ReleaseSound(const s: Sound);
+  external "audio" name "ReleaseSound";
+
+// Volume 1.0, pitch 1.0, centre pan, no loop. 0 before unlock or if s is bad.
+public routine Play(const s: Sound): Voice;
+  external "audio" name "Play";
+// volume 0..1, pitch = playback rate (1.0 normal), pan -1..1.
+public routine PlayEx(const s: Sound; const volume: float64; const pitch: float64; const pan: float64; const loop: bool): Voice;
+  external "audio" name "PlayEx";
+public routine StopVoice(const v: Voice);
+  external "audio" name "StopVoice";
+public routine SetVoiceVolume(const v: Voice; const volume: float64);
+  external "audio" name "SetVoiceVolume";
+public routine SetVoicePan(const v: Voice; const pan: float64);
+  external "audio" name "SetVoicePan";
+public routine SetVoicePitch(const v: Voice; const pitch: float64);
+  external "audio" name "SetVoicePitch";
+// False once the voice has ended or been stopped (its handle is then dead).
+public routine IsVoicePlaying(const v: Voice): bool;
+  external "audio" name "IsVoicePlaying";
+public routine StopAllSounds();
+  external "audio" name "StopAllSounds";
+
+// ---- Music ----
+
+// Streams from the embedded asset; returns 0 when the asset is missing.
+public routine LoadMusic(const asset: ptr to char): Music;
+  external "audio" name "LoadMusic";
+public routine ReleaseMusic(const m: Music);
+  external "audio" name "ReleaseMusic";
+// Starts m from the beginning; stops any other track. Queued until unlock.
+public routine PlayMusic(const m: Music; const loop: bool);
+  external "audio" name "PlayMusic";
+public routine StopMusic();
+  external "audio" name "StopMusic";
+public routine PauseMusic();
+  external "audio" name "PauseMusic";
+public routine ResumeMusic();
+  external "audio" name "ResumeMusic";
+public routine IsMusicPlaying(): bool;
+  external "audio" name "IsMusicPlaying";
+// Seconds.
+public routine MusicPosition(): float64;
+  external "audio" name "MusicPosition";
+// Seconds; 0 until the browser knows it.
+public routine MusicDuration(): float64;
+  external "audio" name "MusicDuration";
+public routine SeekMusic(const seconds: float64);
+  external "audio" name "SeekMusic";
+// Ramps the music bus volume to toVolume over seconds.
+public routine FadeMusic(const toVolume: float64; const seconds: float64);
+  external "audio" name "FadeMusic";
+
+// ---- Buses (0..1) ----
+
+public routine SetMasterVolume(const volume: float64);
+  external "audio" name "SetMasterVolume";
+public routine SetSfxVolume(const volume: float64);
+  external "audio" name "SetSfxVolume";
+public routine SetMusicVolume(const volume: float64);
+  external "audio" name "SetMusicVolume";
+public routine GetMasterVolume(): float64;
+  external "audio" name "GetMasterVolume";
+public routine GetSfxVolume(): float64;
+  external "audio" name "GetSfxVolume";
+public routine GetMusicVolume(): float64;
+  external "audio" name "GetMusicVolume";
+
+end.

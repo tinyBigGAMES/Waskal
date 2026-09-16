@@ -1,0 +1,108 @@
+/*******************************************************************************
+  Waskal™ Programming Language
+
+  Copyright © 2026-present tinyBigGAMES™ LLC
+  All Rights Reserved.
+
+  https://waskal.org
+
+  See LICENSE for license information
+ -------------------------------------------------------------------------------
+  localstorage.wkl
+
+  Wraps the localstorage.js shim: persistent key/value storage backed by the
+  browser's window.localStorage. Keys are private to this app -- the shim
+  prefixes them with the module name, so apps opened from the same folder
+  never see each other's data. Nothing here raises: a missing key returns
+  the caller's default, and a failed write returns false.
+*******************************************************************************/
+
+module unit localstorage;
+
+// True when storage is reachable and writable (probes with a throwaway key).
+public routine Available(): bool;
+  external "localstorage" name "Available";
+
+// False on quota or security error.
+public routine SetItem(const key: ptr to char; const value: ptr to char): bool;
+  external "localstorage" name "SetItem";
+
+// Writes up to bufSize-1 bytes plus NUL; returns the full byte length,
+// or -1 if the key is absent. bufSize = 0 queries the length only.
+routine GetItemInto(const key: ptr to char; const buf: ptr to char; const bufSize: int64): int64;
+  external "localstorage" name "GetItemInto";
+
+public routine RemoveItem(const key: ptr to char);
+  external "localstorage" name "RemoveItem";
+
+// Removes only this app's keys.
+public routine Clear();
+  external "localstorage" name "Clear";
+
+// Number of keys belonging to this app.
+public routine Length(): int32;
+  external "localstorage" name "Length";
+
+// Same contract as GetItemInto; -1 if index is out of range.
+routine KeyInto(const index: int32; const buf: ptr to char; const bufSize: int64): int64;
+  external "localstorage" name "KeyInto";
+
+public routine HasItem(const key: ptr to char): bool;
+  external "localstorage" name "HasItem";
+
+// Typed helpers -- the shim converts to and from text.
+public routine SetInt(const key: ptr to char; const value: int64): bool;
+  external "localstorage" name "SetInt";
+public routine GetInt(const key: ptr to char; const default: int64): int64;
+  external "localstorage" name "GetInt";
+public routine SetFloat(const key: ptr to char; const value: float64): bool;
+  external "localstorage" name "SetFloat";
+public routine GetFloat(const key: ptr to char; const default: float64): float64;
+  external "localstorage" name "GetFloat";
+public routine SetBool(const key: ptr to char; const value: bool): bool;
+  external "localstorage" name "SetBool";
+public routine GetBool(const key: ptr to char; const default: bool): bool;
+  external "localstorage" name "GetBool";
+
+// Stored value as a Waskal string, or default when the key is absent
+// (length query, allocate, fill, copy -- same dance as canvas2d.ToDataURL).
+public routine GetItem(const key: string; const default: string): string;
+var
+  needed: int64;
+  buf: ptr to char;
+  s: string;
+begin
+  needed := GetItemInto(key, nil, 0);
+  if needed < 0 then
+    return default;
+  else
+    getmem(buf);
+    resizemem(buf, needed + 1);
+    GetItemInto(key, buf, needed + 1);
+    s := buf;
+    freemem(buf);
+    return s;
+  end;
+end;
+
+// Name of this app's index-th key, or "" when out of range.
+public routine Key(const index: int32): string;
+var
+  needed: int64;
+  buf: ptr to char;
+  s: string;
+begin
+  needed := KeyInto(index, nil, 0);
+  if needed < 0 then
+    return "";
+  else
+    getmem(buf);
+    resizemem(buf, needed + 1);
+    KeyInto(index, buf, needed + 1);
+    s := buf;
+    freemem(buf);
+    return s;
+  end;
+end;
+
+end.

@@ -1,0 +1,36 @@
+/*******************************************************************************
+  Waskal™ Programming Language
+
+  Copyright © 2026-present tinyBigGAMES™ LLC
+  All Rights Reserved.
+
+  https://waskal.org
+
+  See LICENSE for license information
+ -------------------------------------------------------------------------------
+  probe_assets.wkl
+  Waskal(tm) Programming Language
+
+
+  https://waskal.org
+
+  See LICENSE for license information
+  
+
+  Tests embedding an image asset and drawing it on canvas via the
+  asset system. The PNG is deflate-compressed, base64-encoded into the
+  HTML, decoded at startup, and preloaded as an ImageBitmap.
+*******************************************************************************/
+
+module exe probe_assets;
+
+@asset "$P:res/assets/images/waskal.png" "assets/images";
+
+import canvas2d;
+
+begin
+  canvas2d.Init(640, 480);
+  canvas2d.Clear(70, 30, 120);
+  canvas2d.DrawImage("assets/images/waskal.png", 18, 136, 603, 208);
+  println("Asset probe: image drawn");
+end.

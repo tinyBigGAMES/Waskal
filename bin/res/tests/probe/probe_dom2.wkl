@@ -1,0 +1,94 @@
+/*******************************************************************************
+  Waskal™ Programming Language
+
+  Copyright © 2026-present tinyBigGAMES™ LLC
+  All Rights Reserved.
+
+  https://waskal.org
+
+  See LICENSE for license information
+ -------------------------------------------------------------------------------
+  probe_dom2.wkl
+
+  Isolate: arrays + Listen + many SetStyle calls per tile. Reproduces
+  dom_playground setup without the frame loop.
+*******************************************************************************/
+
+module exe probe_dom2;
+
+import dom;
+
+const
+  COLS = 8;
+  ROWS = 4;
+  MAX_TILES = 64;
+  C0 = "#e74c3c";
+  C1 = "#3498db";
+  C2 = "#2ecc71";
+  C3 = "#f1c40f";
+  C4 = "#9b59b6";
+
+routine ColorAt(const idx: int32): string;
+begin
+  if idx = 0 then return C0; end;
+  if idx = 1 then return C1; end;
+  if idx = 2 then return C2; end;
+  if idx = 3 then return C3; end;
+  return C4;
+end;
+
+var
+  body: dom.Element;
+  grid: dom.Element;
+  tiles: array[0..MAX_TILES-1] of dom.Element;
+  colorIdx: array[0..MAX_TILES-1] of int32;
+  tileCount: int32;
+  t: dom.Element;
+  ci: int32;
+  i: int32;
+
+begin
+  println("probe_dom2: start");
+  body := dom.Body();
+
+  grid := dom.Create("div");
+  dom.SetStyle(grid, "display", "flex");
+  dom.SetStyle(grid, "flex-wrap", "wrap");
+  dom.SetStyle(grid, "gap", "8px");
+  dom.AppendTo(grid, body);
+
+  tileCount := 0;
+  i := 0;
+  while i < COLS * ROWS do
+    ci := i mod 5;
+    t := dom.Create("div");
+
+    // match dom_playground: many SetStyle calls per tile
+    dom.SetStyle(t, "width", "56px");
+    dom.SetStyle(t, "height", "56px");
+    dom.SetStyle(t, "border-radius", "12px");
+    dom.SetStyle(t, "background", ColorAt(ci));
+    dom.SetStyle(t, "cursor", "pointer");
+    dom.SetStyle(t, "transition", "transform 0.2s ease, background 0.3s ease");
+    dom.SetStyle(t, "display", "flex");
+    dom.SetStyle(t, "align-items", "center");
+    dom.SetStyle(t, "justify-content", "center");
+    dom.SetStyle(t, "font-size", "16px");
+    dom.SetStyle(t, "font-weight", "bold");
+    dom.SetStyle(t, "color", "rgba(255,255,255,0.85)");
+    dom.SetStyle(t, "user-select", "none");
+    dom.SetText(t, format("%d", i));
+    dom.Listen(t, "click");
+    dom.AppendTo(t, grid);
+
+    tiles[tileCount] := t;
+    colorIdx[tileCount] := ci;
+    tileCount := tileCount + 1;
+
+    println("PASS: tile %d", i);
+    i := i + 1;
+  end;
+
+  println("probe_dom2: all %d tiles created", tileCount);
+  println("probe_dom2: done");
+end.

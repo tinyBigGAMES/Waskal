@@ -1,0 +1,126 @@
+/*******************************************************************************
+  Waskal™ Programming Language
+
+  Copyright © 2026-present tinyBigGAMES™ LLC
+  All Rights Reserved.
+
+  https://waskal.org
+
+  See LICENSE for license information
+ -------------------------------------------------------------------------------
+  input.wkl
+
+  Wraps the input.js shim. State is snapshotted once per frame tick (needs
+  frame.Run): Down = held during this tick, Pressed = went down since the
+  previous tick, Released = went up since the previous tick. Keys are
+  physical (layout independent), numbered by USB HID usage. Mouse position
+  is in canvas pixels once canvas2d.Init/InitOn has run. Gamepads use the
+  standard mapping; pads are 0..3, sticks get a radial deadzone.
+*******************************************************************************/
+
+module unit input;
+
+const
+  // keys -- USB HID usage ids (page 0x07)
+  KEY_A = 4;  KEY_B = 5;  KEY_C = 6;  KEY_D = 7;  KEY_E = 8;  KEY_F = 9;  KEY_G = 10;
+  KEY_H = 11; KEY_I = 12; KEY_J = 13; KEY_K = 14; KEY_L = 15; KEY_M = 16; KEY_N = 17;
+  KEY_O = 18; KEY_P = 19; KEY_Q = 20; KEY_R = 21; KEY_S = 22; KEY_T = 23; KEY_U = 24;
+  KEY_V = 25; KEY_W = 26; KEY_X = 27; KEY_Y = 28; KEY_Z = 29;
+  KEY_1 = 30; KEY_2 = 31; KEY_3 = 32; KEY_4 = 33; KEY_5 = 34;
+  KEY_6 = 35; KEY_7 = 36; KEY_8 = 37; KEY_9 = 38; KEY_0 = 39;
+  KEY_ENTER = 40; KEY_ESCAPE = 41; KEY_BACKSPACE = 42; KEY_TAB = 43; KEY_SPACE = 44;
+  KEY_MINUS = 45; KEY_EQUAL = 46; KEY_BRACKET_LEFT = 47; KEY_BRACKET_RIGHT = 48;
+  KEY_BACKSLASH = 49; KEY_SEMICOLON = 51; KEY_QUOTE = 52; KEY_BACKQUOTE = 53;
+  KEY_COMMA = 54; KEY_PERIOD = 55; KEY_SLASH = 56; KEY_CAPS_LOCK = 57;
+  KEY_F1 = 58; KEY_F2 = 59; KEY_F3 = 60; KEY_F4 = 61; KEY_F5 = 62; KEY_F6 = 63;
+  KEY_F7 = 64; KEY_F8 = 65; KEY_F9 = 66; KEY_F10 = 67; KEY_F11 = 68; KEY_F12 = 69;
+  KEY_PRINT_SCREEN = 70; KEY_SCROLL_LOCK = 71; KEY_PAUSE = 72; KEY_INSERT = 73;
+  KEY_HOME = 74; KEY_PAGE_UP = 75; KEY_DELETE = 76; KEY_END = 77; KEY_PAGE_DOWN = 78;
+  KEY_RIGHT = 79; KEY_LEFT = 80; KEY_DOWN = 81; KEY_UP = 82;
+  KEY_NUM_LOCK = 83; KEY_NUMPAD_DIVIDE = 84; KEY_NUMPAD_MULTIPLY = 85;
+  KEY_NUMPAD_SUBTRACT = 86; KEY_NUMPAD_ADD = 87; KEY_NUMPAD_ENTER = 88;
+  KEY_NUMPAD_1 = 89; KEY_NUMPAD_2 = 90; KEY_NUMPAD_3 = 91; KEY_NUMPAD_4 = 92;
+  KEY_NUMPAD_5 = 93; KEY_NUMPAD_6 = 94; KEY_NUMPAD_7 = 95; KEY_NUMPAD_8 = 96;
+  KEY_NUMPAD_9 = 97; KEY_NUMPAD_0 = 98; KEY_NUMPAD_DECIMAL = 99;
+  KEY_CONTROL_LEFT = 224; KEY_SHIFT_LEFT = 225; KEY_ALT_LEFT = 226; KEY_META_LEFT = 227;
+  KEY_CONTROL_RIGHT = 228; KEY_SHIFT_RIGHT = 229; KEY_ALT_RIGHT = 230; KEY_META_RIGHT = 231;
+
+  // mouse buttons
+  MOUSE_LEFT = 0; MOUSE_MIDDLE = 1; MOUSE_RIGHT = 2; MOUSE_BACK = 3; MOUSE_FORWARD = 4;
+
+  // gamepad buttons -- standard mapping
+  PAD_A = 0; PAD_B = 1; PAD_X = 2; PAD_Y = 3;
+  PAD_LEFT_BUMPER = 4; PAD_RIGHT_BUMPER = 5; PAD_LEFT_TRIGGER = 6; PAD_RIGHT_TRIGGER = 7;
+  PAD_BACK = 8; PAD_START = 9; PAD_LEFT_STICK = 10; PAD_RIGHT_STICK = 11;
+  PAD_UP = 12; PAD_DOWN = 13; PAD_LEFT = 14; PAD_RIGHT = 15; PAD_GUIDE = 16;
+
+  // gamepad axes
+  AXIS_LEFT_X = 0; AXIS_LEFT_Y = 1; AXIS_RIGHT_X = 2; AXIS_RIGHT_Y = 3;
+
+// ---- keyboard ----
+public routine KeyDown(const key: int32): bool;
+  external "input" name "KeyDown";
+
+public routine KeyPressed(const key: int32): bool;
+  external "input" name "KeyPressed";
+
+public routine KeyReleased(const key: int32): bool;
+  external "input" name "KeyReleased";
+
+public routine AnyKeyPressed(): bool;
+  external "input" name "AnyKeyPressed";
+
+// ---- mouse ----
+public routine MouseDown(const button: int32): bool;
+  external "input" name "MouseDown";
+
+public routine MousePressed(const button: int32): bool;
+  external "input" name "MousePressed";
+
+public routine MouseReleased(const button: int32): bool;
+  external "input" name "MouseReleased";
+
+public routine MouseX(): float64;
+  external "input" name "MouseX";
+
+public routine MouseY(): float64;
+  external "input" name "MouseY";
+
+public routine MouseDeltaX(): float64;
+  external "input" name "MouseDeltaX";
+
+public routine MouseDeltaY(): float64;
+  external "input" name "MouseDeltaY";
+
+// wheel movement this tick (positive = scrolled down)
+public routine MouseWheel(): float64;
+  external "input" name "MouseWheel";
+
+// ---- gamepad ----
+public routine GamepadConnected(const pad: int32): bool;
+  external "input" name "GamepadConnected";
+
+public routine GamepadDown(const pad: int32; const button: int32): bool;
+  external "input" name "GamepadDown";
+
+public routine GamepadPressed(const pad: int32; const button: int32): bool;
+  external "input" name "GamepadPressed";
+
+public routine GamepadReleased(const pad: int32; const button: int32): bool;
+  external "input" name "GamepadReleased";
+
+// analog button value 0..1 (triggers)
+public routine GamepadButtonValue(const pad: int32; const button: int32): float64;
+  external "input" name "GamepadButtonValue";
+
+// -1..1 with radial deadzone applied to the stick pair
+public routine GamepadAxis(const pad: int32; const axis: int32): float64;
+  external "input" name "GamepadAxis";
+
+public routine GamepadAxisRaw(const pad: int32; const axis: int32): float64;
+  external "input" name "GamepadAxisRaw";
+
+public routine SetDeadzone(const dz: float64);
+  external "input" name "SetDeadzone";
+
+end.

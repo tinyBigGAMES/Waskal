@@ -1,0 +1,80 @@
+/*******************************************************************************
+  Waskal™ Programming Language
+
+  Copyright © 2026-present tinyBigGAMES™ LLC
+  All Rights Reserved.
+
+  https://waskal.org
+
+  See LICENSE for license information
+ -------------------------------------------------------------------------------
+  responsive_canvas.wkl
+  ------------------------------------------------------------------------------
+
+  The canvas follows the browser window: SetPlacement(PLACE_WINDOW) does the
+  resizing (and DPI scaling) in canvas2d; Render just reads Width()/Height().
+  Update logs the size whenever it changes. ESC quits.
+*******************************************************************************/
+
+module exe responsive_canvas;
+
+@favicon "$P:res/assets/icons/waskal.ico";
+
+import
+  canvas2d,
+  frame,
+  input;
+
+var
+  curW: int32;
+  curH: int32;
+
+routine Update(const dt: float64);
+var w: int32;
+var h: int32;
+begin
+  if input.KeyPressed(input.KEY_ESCAPE) then
+    frame.Stop();
+  end;
+
+  w := canvas2d.Width();
+  h := canvas2d.Height();
+  if (w <> curW) or (h <> curH) then
+    curW := w;
+    curH := h;
+    println("canvas now %dx%d", curW, curH);
+  end;
+end;
+
+routine Render();
+var w: float64;
+var h: float64;
+begin
+  w := float64(canvas2d.Width());
+  h := float64(canvas2d.Height());
+  canvas2d.Clear(20, 20, 30);
+
+  canvas2d.SetStrokeStyle("#4fc3f7");
+  canvas2d.SetLineWidth(4.0);
+  canvas2d.StrokeRect(2.0, 2.0, w - 4.0, h - 4.0);
+
+  canvas2d.SetFillStyle("#ffd54a");
+  canvas2d.SetFont("32px sans-serif");
+  canvas2d.SetTextAlign(canvas2d.TEXT_ALIGN_CENTER);
+  canvas2d.SetTextBaseline(canvas2d.BASELINE_MIDDLE);
+  canvas2d.FillText("resize the window", w / 2.0, h / 2.0 - 24.0);
+  canvas2d.FillText("ESC to quit", w / 2.0, h / 2.0 + 24.0);
+end;
+
+routine Shutdown();
+begin
+  println("responsive_canvas done");
+end;
+
+begin
+  curW := 0;
+  curH := 0;
+  canvas2d.Init(800, 600);
+  canvas2d.SetPlacement(canvas2d.PLACE_WINDOW);
+  frame.Run(Update, Render, Shutdown);
+end.

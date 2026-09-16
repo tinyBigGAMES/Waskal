@@ -1,0 +1,174 @@
+<!--
+/*******************************************************************************
+ Waskal™ Programming Language
+
+ Copyright © 2026-present tinyBigGAMES™ LLC
+ All Rights Reserved.
+
+ https://waskal.org
+
+ See LICENSE for license information
+*******************************************************************************/
+-->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+__WKL_FAVICON__
+<title>__WKL_WASM_MODULE__</title>
+<style>
+  body { background:#1e1e1e; color:#d4d4d4; margin:0; padding:16px;
+         font-family:Consolas,"Courier New",monospace; }
+  h1  { font-size:13px; font-weight:normal; color:#808080; margin:0 0 12px 0; }
+  pre { white-space:pre-wrap; word-break:break-word; margin:0;
+        font-size:13px; line-height:1.45; }
+  #err  { color:#f48771; }
+  #exit { margin-top:12px; font-size:12px; color:#808080; }
+  .wkl-app h1, .wkl-app #out, .wkl-app #err, .wkl-app #exit { display:none; }
+</style>
+</head>
+<body>
+<h1>__WKL_WASM_MODULE__</h1>
+<pre id="out"></pre>
+<pre id="err"></pre>
+<div id="exit">running...</div>
+
+<!--
+  Waskal wasm64 runner template.
+  The WASI64 shim and wasm module are inlined so this file runs from
+  file:// with no web server.  Double-click to execute.
+
+  Vendored WASI preview1 shim for memory64 (wasm64), based on
+  @bjorn3/browser_wasi_shim (MIT OR Apache-2.0), adapted for 64-bit
+  pointer ABI by tinyBigGAMES LLC.
+-->
+<script>var WKL_ASSETS={manifest:__WKL_ASSET_MANIFEST__,data:"__WKL_ASSET_DATA__"};</script>
+<script>
+__WKL_WASI64_SHIM__
+</script>
+
+<script>
+(function () {
+  var out  = document.getElementById("out");
+  var err  = document.getElementById("err");
+  var exit = document.getElementById("exit");
+
+  var WASI          = WasiShim.WASI;
+  var OpenFile      = WasiShim.OpenFile;
+  var File          = WasiShim.File;
+  var ConsoleStdout = WasiShim.ConsoleStdout;
+
+  function decodeModule(b64) {
+    var bin = atob(b64);
+    var bytes = new Uint8Array(bin.length);
+    for (var i = 0; i < bin.length; i++)
+      bytes[i] = bin.charCodeAt(i);
+    return bytes;
+  }
+
+  // ANSI SGR -> styled spans, so wasm output can use the same escape codes a
+  // native console understands. Handles reset (0), bold (1), and the 16
+  // standard foreground colours (30-37, 90-97). Unknown codes are ignored.
+  var ANSI_COLORS = ["#000","#c00","#0a0","#a60","#00c","#a0a","#0aa","#aaa",
+                     "#555","#f55","#5f5","#ff5","#55f","#f5f","#5ff","#fff"];
+  var ansiState = { bold: false, color: null };
+  function writeAnsi(el, text) {
+    var re = /\x1b\[([0-9;]*)m/g, last = 0, m;
+    function emit(s) {
+      if (!s) return;
+      if (!ansiState.bold && ansiState.color === null) {
+        el.appendChild(document.createTextNode(s));
+        return;
+      }
+      var span = document.createElement("span");
+      if (ansiState.bold) span.style.fontWeight = "bold";
+      if (ansiState.color !== null) span.style.color = ANSI_COLORS[ansiState.color];
+      span.textContent = s;
+      el.appendChild(span);
+    }
+    while ((m = re.exec(text)) !== null) {
+      emit(text.slice(last, m.index));
+      last = re.lastIndex;
+      var codes = m[1] === "" ? [0] : m[1].split(";").map(Number);
+      for (var i = 0; i < codes.length; i++) {
+        var c = codes[i];
+        if (c === 0) { ansiState.bold = false; ansiState.color = null; }
+        else if (c === 1) ansiState.bold = true;
+        else if (c >= 30 && c <= 37) ansiState.color = c - 30;
+        else if (c >= 90 && c <= 97) ansiState.color = c - 90 + 8;
+      }
+    }
+    emit(text.slice(last));
+  }
+
+  var fds = [
+    new OpenFile(new File([])),
+    ConsoleStdout.lineBuffered(function (line) {
+      writeAnsi(out, line + "\n");
+      if (document.body.classList.contains("wkl-app")) console.log(line);
+    }),
+    ConsoleStdout.lineBuffered(function (line) { writeAnsi(err, line + "\n"); })
+  ];
+
+  var wasi = new WASI(["__WKL_WASM_MODULE__"], [], fds);
+
+  var bytes = decodeModule("__WKL_WASM_BASE64__");
+
+  // memory64 feature detect — wasm module with a single i64 memory
+  try {
+    new WebAssembly.Module(new Uint8Array([
+      0x00,0x61,0x73,0x6D, 0x01,0x00,0x00,0x00,
+      0x05,0x03,0x01, 0x04,0x01
+    ]));
+  } catch (_) {
+    out.textContent = "";
+    err.textContent = "This program requires WebAssembly memory64 support.\n" +
+      "Your browser does not currently support this feature.\n" +
+      "Please try a browser with memory64 enabled.";
+    exit.textContent = "unsupported browser";
+    return;
+  }
+
+  var wasmInstance = null;
+  var assetBridge = (typeof WaskalAssets !== "undefined")
+    ? WaskalAssets.createWasmBridge(function () { return wasmInstance; })
+    : {};
+
+  var initAssets = (typeof WaskalAssets !== "undefined")
+    ? WaskalAssets.decode()
+    : Promise.resolve();
+
+  initAssets.then(function () {
+    return WebAssembly.instantiate(bytes, {
+      wasi_snapshot_preview1: wasi.wasiImport,
+      waskal: assetBridge__WKL_EXTRA_IMPORTS__
+    });
+  }).then(function (result) {
+    wasmInstance = result.instance;
+    window.WKL_WASM = result.instance;
+    WKL.moduleName = wasi.args[0];
+    var code = wasi.start(result.instance);
+    var finished = false;
+    function finish(failed) {
+      if (finished) return; finished = true;
+      try {
+        if (result.instance.exports._shutdown) {
+          var sh = (typeof frame !== "undefined") ? frame.shutdownHandler() : 0;
+          result.instance.exports._shutdown(sh);
+        }
+      }
+      catch (e) { WKL.fail(e); return; }
+      if (!failed) exit.textContent = "exit code: " + code;
+      WKL.runExit();
+    }
+    if (typeof frame !== "undefined" && frame.IsRunning()) {
+      WKL.onLoopEnd = finish;
+      window.addEventListener("pagehide", function () { finish(false); }, { once: true });
+    } else finish();
+  }).catch(function (e) {
+    WKL.fail(e);
+  });
+})();
+</script>
+</body>
+</html>

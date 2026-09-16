@@ -1,0 +1,21 @@
+/*******************************************************************************
+  Waskal™ Programming Language
+
+  Copyright © 2026-present tinyBigGAMES™ LLC
+  All Rights Reserved.
+
+  https://waskal.org
+
+  See LICENSE for license information
+ -------------------------------------------------------------------------------
+  probe_strconst_unit.wkl
+  Typed and untyped string constants exported from a unit.
+*******************************************************************************/
+
+module unit probe_strconst_unit;
+
+public const
+  UNIT_TYPED: string = "unit typed";
+  UNIT_UNTYPED = "unit untyped";
+
+end.

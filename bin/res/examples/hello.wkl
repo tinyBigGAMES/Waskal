@@ -1,0 +1,28 @@
+/*******************************************************************************
+  Waskal™ Programming Language
+
+  Copyright © 2026-present tinyBigGAMES™ LLC
+  All Rights Reserved.
+
+  See LICENSE for license information
+ -------------------------------------------------------------------------------
+  hello.wkl
+  Hello-world demo. Minimal exe module with emoji output.
+*******************************************************************************/
+
+module exe hello;
+
+@favicon "$P:res/assets/icons/waskal.ico";
+
+begin
+  println("Hello, I am %s! 🚀🔥✨", "Waskal");
+  
+  var i: int32 = 0;
+  var s: string = "Waskal™ " + "Programming Language";
+  
+  println(s);
+  
+  for i := 1 to 10 do
+    println("%d", i);
+  end
+end.

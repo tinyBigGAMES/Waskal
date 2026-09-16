@@ -1,0 +1,98 @@
+/*******************************************************************************
+  Waskal™ Programming Language
+
+  Copyright © 2026-present tinyBigGAMES™ LLC
+  All Rights Reserved.
+
+  See LICENSE for license information
+ -------------------------------------------------------------------------------
+  probe_f64array.wkl
+  Global vs local float64 array probe. Writes in one routine, reads in another
+  and in the main block. int32 and int64 indices. int64 and int32 global arrays
+  as controls. Every value is printed with %.1f (known-good in probe_array).
+*******************************************************************************/
+
+module exe probe_f64array;
+
+var
+  gf: array[0..3] of float64;
+  gi32: array[0..3] of int32;
+  gi64: array[0..3] of int64;
+  big: array[0..399] of float64;
+
+// Large array written via int32 const param -- corruption check
+routine WriteBig(const i: int32; const v: float64);
+begin
+  big[i] := v;
+end;
+
+// Write via int32 const param (demo_particles Spawn shape)
+routine WriteAt32(const i: int32; const v: float64);
+begin
+  gf[i] := v;
+  gi32[i] := int32(v);
+  gi64[i] := int64(v);
+end;
+
+// Write via int64 const param
+routine WriteAt64(const i: int64; const v: float64);
+begin
+  gf[i] := v;
+end;
+
+// Read in a different routine
+routine ReadAt32(const i: int32): float64;
+begin
+  return gf[i];
+end;
+
+routine ReadSum(): float64;
+var i: int32;
+var s: float64;
+begin
+  s := 0.0;
+  for i := 0 to 3 do
+    s := s + gf[i];
+  end;
+  return s;
+end;
+
+var k: int32;
+var lf: array[0..3] of float64;
+begin
+  println("=== Global float64, write int32 idx ===");
+  WriteAt32(0, 1.5);
+  WriteAt32(1, 2.5);
+  WriteAt32(2, 3.5);
+  WriteAt32(3, 4.5);
+  println("gf   direct: %.1f %.1f %.1f %.1f", gf[0], gf[1], gf[2], gf[3]);
+  println("gf   ReadAt32: %.1f %.1f %.1f %.1f", ReadAt32(0), ReadAt32(1), ReadAt32(2), ReadAt32(3));
+  println("gf   ReadSum: %.1f (expect 12.0)", ReadSum());
+  println("gi32 control: %d %d %d %d", gi32[0], gi32[1], gi32[2], gi32[3]);
+  println("gi64 control: %lld %lld %lld %lld", gi64[0], gi64[1], gi64[2], gi64[3]);
+
+  println("\n=== Global float64, write int64 idx ===");
+  WriteAt64(0, 10.5);
+  WriteAt64(3, 40.5);
+  println("gf[0]=%.1f gf[3]=%.1f (expect 10.5 40.5)", gf[0], gf[3]);
+
+  println("\n=== Global float64, loop var idx in main ===");
+  for k := 0 to 3 do
+    gf[k] := float64(k) + 0.25;
+  end;
+  println("gf loop: %.1f %.1f %.1f %.1f (expect 0.3 1.3 2.3 3.3)", gf[0], gf[1], gf[2], gf[3]);
+
+  println("\n=== Local float64 in main (control) ===");
+  lf[0] := 7.5;
+  lf[1] := 8.5;
+  println("lf: %.1f %.1f (expect 7.5 8.5)", lf[0], lf[1]);
+
+  println("\n=== Large global f64, int32 param, literal check ===");
+  for k := 0 to 399 do
+    WriteBig(k, float64(k));
+  end;
+  println("literal text survives: alpha beta gamma %d", 7);
+  println("big[0]=%.1f big[399]=%.1f (expect 0.0 399.0)", big[0], big[399]);
+
+  println("\nprobe_f64array done");
+end.

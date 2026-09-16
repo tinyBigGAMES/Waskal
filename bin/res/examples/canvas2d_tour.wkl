@@ -1,0 +1,225 @@
+/*******************************************************************************
+  Waskal™ Programming Language
+
+  Copyright © 2026-present tinyBigGAMES™ LLC
+  All Rights Reserved.
+
+  https://waskal.org
+
+  See LICENSE for license information
+ -------------------------------------------------------------------------------
+  canvas2d_tour.wkl
+  Static drawing demo exercising one routine per canvas2d category:
+  rects, paths, Path2D, gradients, text + MeasureText, transforms, shadows,
+  compositing, image from @asset, pixel round-trip (ImageDataRead/Write
+  inverting colours), ToDataURL length. No frame loop.
+*******************************************************************************/
+
+module exe canvas2d_tour;
+
+@favicon "$P:res/assets/icons/waskal.ico";
+@asset "$P:res/assets/images/waskal.png" "assets/images";
+
+import canvas2d;
+
+routine DrawRects();
+begin
+  canvas2d.SetFillStyle("#1e1e2e");
+  canvas2d.FillRect(0.0, 0.0, 800.0, 600.0);
+  canvas2d.SetStrokeStyle("#89b4fa");
+  canvas2d.SetLineWidth(3.0);
+  canvas2d.StrokeRect(20.0, 20.0, 160.0, 100.0);
+  canvas2d.SetFillStyle("#f38ba8");
+  canvas2d.FillRect(30.0, 30.0, 60.0, 40.0);
+  canvas2d.ClearRect(40.0, 40.0, 20.0, 20.0);
+end;
+
+routine DrawPaths();
+begin
+  canvas2d.SetFillStyle("#a6e3a1");
+  canvas2d.BeginPath();
+  canvas2d.MoveTo(220.0, 120.0);
+  canvas2d.LineTo(300.0, 20.0);
+  canvas2d.LineTo(380.0, 120.0);
+  canvas2d.ClosePath();
+  canvas2d.Fill();
+  canvas2d.SetStrokeStyle("#fab387");
+  canvas2d.SetLineCap(canvas2d.LINE_CAP_ROUND);
+  canvas2d.SetLineJoin(canvas2d.LINE_JOIN_ROUND);
+  canvas2d.BeginPath();
+  canvas2d.Arc(450.0, 70.0, 40.0, 0.0, 3.14159, false);
+  canvas2d.QuadraticCurveTo(500.0, 130.0, 560.0, 70.0);
+  canvas2d.BezierCurveTo(580.0, 20.0, 640.0, 20.0, 660.0, 70.0);
+  canvas2d.Stroke();
+  canvas2d.BeginPath();
+  canvas2d.Ellipse(720.0, 70.0, 50.0, 30.0, 0.5, 0.0, 6.2831853, false);
+  canvas2d.Stroke();
+  canvas2d.BeginPath();
+  canvas2d.RoundRect(20.0, 140.0, 120.0, 60.0, 12.0);
+  canvas2d.FillRule(canvas2d.FILL_RULE_EVEN_ODD);
+end;
+
+routine DrawPath2D();
+var p: canvas2d.Path;
+begin
+  p := canvas2d.PathCreate();
+  canvas2d.PathMoveTo(p, 160.0, 140.0);
+  canvas2d.PathLineTo(p, 260.0, 140.0);
+  canvas2d.PathLineTo(p, 210.0, 200.0);
+  canvas2d.PathClosePath(p);
+  canvas2d.PathAddRect(p, 280.0, 140.0, 60.0, 60.0);
+  canvas2d.SetFillStyle("#cba6f7");
+  canvas2d.FillPath(p);
+  if canvas2d.IsPointInPath2D(p, 210.0, 160.0) then
+    println("Path2D hit test: inside (ok)");
+  end;
+  canvas2d.PathRelease(p);
+end;
+
+routine DrawGradients();
+var g: canvas2d.Gradient;
+begin
+  g := canvas2d.CreateLinearGradient(360.0, 140.0, 520.0, 140.0);
+  canvas2d.AddColorStop(g, 0.0, "#f9e2af");
+  canvas2d.AddColorStop(g, 1.0, "#f38ba8");
+  canvas2d.SetFillGradient(g);
+  canvas2d.FillRect(360.0, 140.0, 160.0, 60.0);
+  canvas2d.GradientRelease(g);
+  g := canvas2d.CreateRadialGradient(620.0, 170.0, 5.0, 620.0, 170.0, 40.0);
+  canvas2d.AddColorStop(g, 0.0, "#ffffff");
+  canvas2d.AddColorStop(g, 1.0, "#89dceb");
+  canvas2d.SetFillGradient(g);
+  canvas2d.BeginPath();
+  canvas2d.Arc(620.0, 170.0, 40.0, 0.0, 6.2831853, false);
+  canvas2d.Fill();
+  canvas2d.GradientRelease(g);
+end;
+
+routine DrawText();
+var m: canvas2d.TextMetrics;
+var w: float64;
+begin
+  canvas2d.SetFont("bold 28px sans-serif");
+  canvas2d.SetTextAlign(canvas2d.TEXT_ALIGN_LEFT);
+  canvas2d.SetTextBaseline(canvas2d.BASELINE_TOP);
+  canvas2d.SetFillStyle("#cdd6f4");
+  canvas2d.FillText("Waskal Canvas 2D", 20.0, 220.0);
+  canvas2d.SetStrokeStyle("#94e2d5");
+  canvas2d.SetLineWidth(1.0);
+  canvas2d.StrokeText("stroked", 20.0, 260.0);
+  w := canvas2d.MeasureTextWidth("Waskal Canvas 2D");
+  println("MeasureTextWidth = %f", w);
+  canvas2d.MeasureText("Waskal Canvas 2D", m);
+  println("MeasureText.width = %f ascent = %f", m.width, m.actualBoundingBoxAscent);
+end;
+
+routine DrawTransforms();
+var mt: canvas2d.Matrix;
+begin
+  canvas2d.Save();
+  canvas2d.Translate(400.0, 260.0);
+  canvas2d.Rotate(0.4);
+  canvas2d.Scale(1.5, 1.0);
+  canvas2d.SetFillStyle("#f5c2e7");
+  canvas2d.FillRect(-30.0, -20.0, 60.0, 40.0);
+  canvas2d.GetTransform(mt);
+  println("GetTransform e = %f f = %f", mt.e, mt.f);
+  canvas2d.Restore();
+end;
+
+routine DrawShadows();
+begin
+  canvas2d.Save();
+  canvas2d.SetShadowColor("rgba(0,0,0,0.6)");
+  canvas2d.SetShadowBlur(12.0);
+  canvas2d.SetShadowOffsetX(6.0);
+  canvas2d.SetShadowOffsetY(6.0);
+  canvas2d.SetFillStyle("#fab387");
+  canvas2d.FillRect(560.0, 230.0, 120.0, 60.0);
+  canvas2d.Restore();
+end;
+
+routine DrawCompositing();
+begin
+  canvas2d.Save();
+  canvas2d.SetGlobalAlpha(0.5);
+  canvas2d.SetGlobalCompositeOperation(canvas2d.COMPOSITE_LIGHTER);
+  canvas2d.SetFillStyle("#ff0000");
+  canvas2d.FillRect(20.0, 320.0, 80.0, 80.0);
+  canvas2d.SetFillStyle("#00ff00");
+  canvas2d.FillRect(60.0, 360.0, 80.0, 80.0);
+  canvas2d.Restore();
+  println("GlobalAlpha after restore = %f", canvas2d.GetGlobalAlpha());
+end;
+
+routine DrawImageAsset();
+begin
+  println("image %dx%d", canvas2d.ImageWidth("assets/images/waskal.png"), canvas2d.ImageHeight("assets/images/waskal.png"));
+  canvas2d.SetImageSmoothingEnabled(true);
+  canvas2d.SetImageSmoothingQuality(canvas2d.SMOOTHING_HIGH);
+  canvas2d.DrawImageSize("assets/images/waskal.png", 200.0, 320.0, 300.0, 104.0);
+end;
+
+routine DrawPixels();
+var d: canvas2d.ImageData;
+var pix: array of uint8;
+var needed: int64;
+var i: int64;
+begin
+  // Copy the composited squares, invert RGB, put back beside them
+  d := canvas2d.GetImageData(20, 320, 120, 120);
+  needed := canvas2d.ImageDataRead(d, nil, 0);
+  setlength(pix, needed);
+  canvas2d.ImageDataRead(d, address of pix[0], needed);
+  i := 0;
+  while i < needed do
+    pix[i] := 255 - pix[i];
+    pix[i + 1] := 255 - pix[i + 1];
+    pix[i + 2] := 255 - pix[i + 2];
+    i := i + 4;
+  end;
+  canvas2d.ImageDataWrite(d, address of pix[0], needed);
+  canvas2d.PutImageData(d, 560.0, 320.0);
+  println("pixels round-trip: %lld bytes", needed);
+  canvas2d.ImageDataRelease(d);
+end;
+
+routine DrawLineDash();
+var segs: array of float64;
+begin
+  setlength(segs, 2);
+  segs[0] := 10.0;
+  segs[1] := 6.0;
+  canvas2d.SetLineDash(address of segs[0], 2);
+  canvas2d.SetStrokeStyle("#cdd6f4");
+  canvas2d.SetLineWidth(2.0);
+  canvas2d.BeginPath();
+  canvas2d.MoveTo(20.0, 470.0);
+  canvas2d.LineTo(780.0, 470.0);
+  canvas2d.Stroke();
+  canvas2d.SetLineDash(address of segs[0], 0);
+end;
+
+routine ReportDataURL();
+var s: string;
+begin
+  s := canvas2d.ToDataURL("image/png");
+  println("ToDataURL length = %lld", len(s));
+end;
+
+begin
+  canvas2d.Init(800, 600);
+  DrawRects();
+  DrawPaths();
+  DrawPath2D();
+  DrawGradients();
+  DrawText();
+  DrawTransforms();
+  DrawShadows();
+  DrawCompositing();
+  DrawImageAsset();
+  DrawPixels();
+  DrawLineDash();
+  ReportDataURL();
+  println("canvas2d_tour done");
+end.

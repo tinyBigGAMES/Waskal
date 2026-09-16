@@ -1,0 +1,100 @@
+/*******************************************************************************
+  Waskal™ Programming Language
+
+  Copyright © 2026-present tinyBigGAMES™ LLC
+  All Rights Reserved.
+
+  See LICENSE for license information
+ -------------------------------------------------------------------------------
+  probe_array.wkl
+  Array feature probe. Covers static arrays, dynamic arrays, setlength, len,
+  indexing, grow, shrink, free, typed arrays, and arrays in routines.
+*******************************************************************************/
+
+module exe probe_array;
+
+// Type-declared arrays
+type 
+  TScores = array[0..2] of int32;
+  TNames  = array of int64;
+
+// Routine with local static array (tests DoEmitLocalVars auto-alloc)
+routine sum3(const a: int32; const b: int32; const c: int32): int32;
+var buf: array[0..2] of int32;
+begin
+  buf[0] := a;
+  buf[1] := b;
+  buf[2] := c;
+  return buf[0] + buf[1] + buf[2];
+end;
+begin
+  // --- Static array: int32 ---
+  println("=== Static Array (int32) ===");
+  var arr5: array[0..4] of int32;
+  arr5[0] := 10;
+  arr5[1] := 20;
+  arr5[2] := 30;
+  arr5[3] := 40;
+  arr5[4] := 50;
+  println("arr5[0]=%d arr5[2]=%d arr5[4]=%d", arr5[0], arr5[2], arr5[4]);
+
+  // --- Static array: float64 ---
+  println("\n=== Static Array (float64) ===");
+  var fvals: array[0..2] of float64;
+  fvals[0] := 1.5;
+  fvals[1] := 2.5;
+  fvals[2] := 3.5;
+  println("fvals[0]=%.1f fvals[2]=%.1f", fvals[0], fvals[2]);
+
+  // --- Static array: int64 ---
+  println("\n=== Static Array (int64) ===");
+  var big: array[0..1] of int64;
+  big[0] := 1000000000000;
+  big[1] := 2000000000000;
+  println("big[0]=%lld big[1]=%lld", big[0], big[1]);
+  // --- Type-declared static array ---
+  println("\n=== Type-Declared Static Array ===");
+  var scores: TScores;
+  scores[0] := 90;
+  scores[1] := 85;
+  scores[2] := 95;
+  println("scores[0]=%d scores[1]=%d scores[2]=%d", scores[0], scores[1], scores[2]);
+
+  // --- Dynamic array: allocate, index, len ---
+  println("\n=== Dynamic Array ===");
+  var darr: array of int32;
+  setlength(darr, 5);
+  println("len=%lld", len(darr));
+  darr[0] := 100;
+  darr[1] := 200;
+  darr[2] := 300;
+  darr[3] := 400;
+  darr[4] := 500;
+  println("darr[0]=%d darr[2]=%d darr[4]=%d", darr[0], darr[2], darr[4]);
+
+  // --- Dynamic array: grow ---
+  println("\n=== Grow ===");
+  setlength(darr, 7);
+  println("len after grow=%lld", len(darr));
+  // Old data preserved
+  println("darr[0]=%d darr[4]=%d", darr[0], darr[4]);
+  darr[5] := 600;
+  darr[6] := 700;
+  println("darr[5]=%d darr[6]=%d", darr[5], darr[6]);
+  // --- Dynamic array: shrink ---
+  println("\n=== Shrink ===");
+  setlength(darr, 3);
+  println("len after shrink=%lld", len(darr));
+  println("darr[0]=%d darr[2]=%d", darr[0], darr[2]);
+
+  // --- Dynamic array: free (setlength 0) ---
+  println("\n=== Free ===");
+  setlength(darr, 0);
+  println("len after free=%lld", len(darr));
+
+  // --- Routine with local static array ---
+  println("\n=== Routine Local Array ===");
+  println("sum3(10,20,30)=%d", sum3(10, 20, 30));
+
+  println("\nprobe_array ok");
+end.

@@ -1,0 +1,66 @@
+/*******************************************************************************
+  Waskal™ Programming Language
+
+  Copyright © 2026-present tinyBigGAMES™ LLC
+  All Rights Reserved.
+
+  https://waskal.org
+
+  See LICENSE for license information
+ -------------------------------------------------------------------------------
+  probe_strret.wkl
+
+  Isolate string return + DOM usage pattern. Tests whether returning string
+  constants from a function and passing them to dom.SetStyle causes memory
+  corruption after repeated calls.
+*******************************************************************************/
+
+module exe probe_strret;
+
+import dom;
+
+const
+  C0 = "#e74c3c";
+  C1 = "#3498db";
+  C2 = "#2ecc71";
+  C3 = "#f1c40f";
+  C4 = "#9b59b6";
+
+routine ColorAt(const idx: int32): string;
+begin
+  if idx = 0 then return C0; end;
+  if idx = 1 then return C1; end;
+  if idx = 2 then return C2; end;
+  if idx = 3 then return C3; end;
+  return C4;
+end;
+
+var
+  body: dom.Element;
+  t: dom.Element;
+  i: int32;
+  ci: int32;
+
+begin
+  println("probe_strret: start");
+  body := dom.Body();
+
+  // create 32 tiles, each using ColorAt to set background
+  i := 0;
+  while i < 32 do
+    ci := i mod 5;
+    t := dom.Create("div");
+    dom.SetStyle(t, "width", "40px");
+    dom.SetStyle(t, "height", "40px");
+    dom.SetStyle(t, "background", ColorAt(ci));
+    dom.SetText(t, format("%d", i));
+    dom.AppendTo(t, body);
+    println("PASS: tile %d color %d", i, ci);
+    i := i + 1;
+  end;
+
+  println("probe_strret: all 32 tiles created");
+
+  dom.Release(body);
+  println("probe_strret: done");
+end.

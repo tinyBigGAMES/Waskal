@@ -1,0 +1,28 @@
+/*******************************************************************************
+  Waskal™ Programming Language
+
+  Copyright © 2026-present tinyBigGAMES™ LLC
+  All Rights Reserved.
+
+  https://waskal.org
+
+  See LICENSE for license information
+ -------------------------------------------------------------------------------
+  mathlib.wkl
+*******************************************************************************/
+
+module lib mathlib;
+
+@outputpath "$P:res/tests/libs";
+
+public routine Add(a: int64; b: int64): int64;
+begin
+  return a + b;
+end;
+
+routine Mul(a: int64; b: int64): int64;
+begin
+  return a * b;
+end;
+
+end.

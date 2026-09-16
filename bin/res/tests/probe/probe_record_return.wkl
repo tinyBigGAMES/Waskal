@@ -1,0 +1,90 @@
+module exe probe_record_return;
+
+type
+  Point = record
+    x: int32;
+    y: int32;
+  end;
+
+  Pair = record
+    a: float64;
+    b: float64;
+  end;
+
+  TinyRec = record
+    val: int32;
+    tag: int32;
+  end;
+
+  NestedRec = record
+    p: Point;
+    name: string;
+  end;
+
+  PointMaker = routine(const ax: int32; const ay: int32): Point;
+// --- Case 1: p := f() ---
+routine make_point(const ax: int32; const ay: int32): Point;
+var
+  p: Point;
+begin
+  p.x := ax;
+  p.y := ay;
+  return p;
+end;
+
+// --- Case 4: g(f()) ---
+routine sum_point(const p: Point): int32;
+begin
+  return p.x + p.y;
+end;
+
+// --- Case 7: nested record with string field ---
+routine make_nested(const ax: int32; const aname: string): NestedRec;
+var
+  r: NestedRec;
+begin
+  r.p.x := ax;
+  r.p.y := ax * 2;
+  r.name := aname;
+  return r;
+end;
+begin
+  // Case 1: p := f()
+  var p: Point;
+  p := make_point(3, 4);
+  println("Case 1: p := make_point(3,4)");
+  println("  p.x = %d (expect 3)", p.x);
+  println("  p.y = %d (expect 4)", p.y);
+
+  // Case 2: q := p, mutate q
+  var q: Point;
+  q := p;
+  q.x := 99;
+  println("Case 2: q := p then q.x := 99");
+  println("  p.x = %d (expect 3)", p.x);
+  println("  q.x = %d (expect 99)", q.x);
+
+  // Case 3: f().x -- field access on call result
+  println("Case 3: make_point(7,8).x = %d (expect 7)", make_point(7, 8).x);
+
+  // Case 4: g(f()) -- aggregate passed to another call
+  var s: int32;
+  s := sum_point(make_point(10, 20));
+  println("Case 4: sum_point(make_point(10,20)) = %d (expect 30)", s);
+
+  // Case 5: routine reference
+  var maker: PointMaker;
+  maker := make_point;
+  var rp: Point;
+  rp := maker(5, 6);
+  println("Case 5: maker(5,6).x = %d (expect 5)", rp.x);
+  println("  rp.y = %d (expect 6)", rp.y);
+
+  // Case 7: nested record with string
+  var nr: NestedRec;
+  nr := make_nested(42, "hello");
+  println("Case 7: make_nested(42, hello)");
+  println("  nr.p.x = %d (expect 42)", nr.p.x);
+  println("  nr.p.y = %d (expect 84)", nr.p.y);
+  println("  nr.name = %s (expect hello)", nr.name);
+end.

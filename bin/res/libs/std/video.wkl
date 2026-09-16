@@ -1,0 +1,112 @@
+/*******************************************************************************
+  Waskal™ Programming Language
+
+  Copyright © 2026-present tinyBigGAMES™ LLC
+  All Rights Reserved.
+
+  https://waskal.org
+
+  See LICENSE for license information
+ -------------------------------------------------------------------------------
+  video.wkl
+
+  Wraps the video.js shim (HTMLVideoElement). Load an embedded @asset (.mp4 or
+  .webm) or an external URL, then either Draw the current frame onto the
+  canvas2d canvas every frame, or Show the element itself in the page with
+  the same placement modes canvas2d uses. Browsers refuse to play with sound
+  before the user clicks or presses a key: Play before that starts if muted,
+  otherwise it starts on the first gesture. Poll IsReady() before drawing;
+  Width/Height are 0 until the browser has read the metadata. Nothing here
+  raises. Note an embedded clip grows the .html by about 1.35x its size.
+*******************************************************************************/
+
+module unit video;
+
+public type
+  // JS object handle (int32 index into the shim's handle table), 0 = none
+  Video = int32;
+
+public const
+  // Show
+  PLACE_FLOW = "flow";
+  PLACE_CENTER = "center";
+  PLACE_FILL = "fill";
+  PLACE_WINDOW = "window";
+
+// ---- Lifetime ----
+
+// Asset name as declared by @asset, e.g. "assets/video/intro.mp4".
+// Returns 0 when the asset is missing.
+public routine Load(const asset: ptr to char): Video;
+  external "video" name "Load";
+// External URL. Drawing onto the canvas needs the server to send CORS headers.
+public routine LoadURL(const url: ptr to char): Video;
+  external "video" name "LoadURL";
+public routine Release(const v: Video);
+  external "video" name "Release";
+
+// ---- Transport ----
+
+public routine Play(const v: Video);
+  external "video" name "Play";
+public routine Pause(const v: Video);
+  external "video" name "Pause";
+// Pauses and rewinds to 0.
+public routine Stop(const v: Video);
+  external "video" name "Stop";
+public routine Seek(const v: Video; const seconds: float64);
+  external "video" name "Seek";
+// 0..1
+public routine SetVolume(const v: Video; const volume: float64);
+  external "video" name "SetVolume";
+public routine SetLoop(const v: Video; const loop: bool);
+  external "video" name "SetLoop";
+public routine SetMuted(const v: Video; const muted: bool);
+  external "video" name "SetMuted";
+// 1.0 normal.
+public routine SetPlaybackRate(const v: Video; const rate: float64);
+  external "video" name "SetPlaybackRate";
+
+// ---- State ----
+
+// True once enough is buffered to play (readyState >= HAVE_FUTURE_DATA).
+public routine IsReady(const v: Video): bool;
+  external "video" name "IsReady";
+public routine IsPlaying(const v: Video): bool;
+  external "video" name "IsPlaying";
+public routine IsEnded(const v: Video): bool;
+  external "video" name "IsEnded";
+public routine IsMuted(const v: Video): bool;
+  external "video" name "IsMuted";
+// Seconds.
+public routine Position(const v: Video): float64;
+  external "video" name "Position";
+// Seconds; 0 until the browser knows it.
+public routine Duration(const v: Video): float64;
+  external "video" name "Duration";
+// Pixels; 0 until metadata is loaded.
+public routine Width(const v: Video): int32;
+  external "video" name "Width";
+public routine Height(const v: Video): int32;
+  external "video" name "Height";
+
+// ---- Draw onto the canvas2d canvas ----
+
+// Draws the current frame scaled to dw x dh at dx, dy. Needs canvas2d.Init.
+public routine Draw(const v: Video; const dx: float64; const dy: float64; const dw: float64; const dh: float64);
+  external "video" name "Draw";
+public routine DrawRect(const v: Video; const sx: float64; const sy: float64; const sw: float64; const sh: float64; const dx: float64; const dy: float64; const dw: float64; const dh: float64);
+  external "video" name "DrawRect";
+
+// ---- Element in the page ----
+
+// PLACE_FLOW   in the page flow with the dev console
+// PLACE_CENTER app mode, centred at native size
+// PLACE_FILL   app mode, scaled to the window keeping aspect (letterboxed)
+// PLACE_WINDOW app mode, fills the window, letterboxed
+public routine Show(const v: Video; const mode: ptr to char);
+  external "video" name "Show";
+public routine Hide(const v: Video);
+  external "video" name "Hide";
+
+end.

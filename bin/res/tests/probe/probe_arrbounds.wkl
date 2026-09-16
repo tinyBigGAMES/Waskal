@@ -1,0 +1,48 @@
+/*******************************************************************************
+  Waskal™ Programming Language
+
+  Copyright © 2026-present tinyBigGAMES™ LLC
+  All Rights Reserved.
+
+  https://waskal.org
+
+  See LICENSE for license information
+ -------------------------------------------------------------------------------
+  probe_arrbounds.wkl
+
+  Const expression in array bounds. Compares array[0..N-1] (const expr)
+  against array[0..255] (literal).
+*******************************************************************************/
+
+module exe probe_arrbounds;
+
+const
+  N = 256;
+
+var
+  litArr: array[0..255] of int32;
+  exprArr: array[0..N-1] of int32;
+  i: int32;
+
+begin
+  println("probe_arrbounds: start");
+  println("size(litArr) = %lld", size(litArr));
+  println("size(exprArr) = %lld", size(exprArr));
+
+  // fill and read back both arrays at every index
+  i := 0;
+  while i < 256 do
+    litArr[i] := i * 2;
+    i := i + 1;
+  end;
+  println("litArr[0]=%d litArr[255]=%d", litArr[0], litArr[255]);
+
+  i := 0;
+  while i < 256 do
+    exprArr[i] := i * 3;
+    i := i + 1;
+  end;
+  println("exprArr[0]=%d exprArr[255]=%d", exprArr[0], exprArr[255]);
+
+  println("probe_arrbounds: done");
+end.

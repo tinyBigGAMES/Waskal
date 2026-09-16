@@ -1,0 +1,276 @@
+/*******************************************************************************
+  Waskal™ Programming Language
+
+  Copyright © 2026-present tinyBigGAMES™ LLC
+  All Rights Reserved.
+
+  https://waskal.org
+
+  See LICENSE for license information
+ -------------------------------------------------------------------------------
+  dom.wkl
+
+  Core DOM manipulation: elements, attributes, styles, events (poll model).
+*******************************************************************************/
+
+module unit dom;
+
+public type
+  // DOM element handle (int32 index into the shim's handle table, 0 = none)
+  Element = int32;
+
+// ---- Element Lifecycle ----
+
+public routine Create(const tag: ptr to char): Element;
+  external "dom" name "Create";
+
+public routine Query(const selector: ptr to char): Element;
+  external "dom" name "Query";
+
+public routine Body(): Element;
+  external "dom" name "Body";
+
+public routine Release(const elem: Element);
+  external "dom" name "Release";
+
+public routine Remove(const elem: Element);
+  external "dom" name "Remove";
+
+// ---- Tree Operations ----
+
+public routine AppendTo(const child: Element; const parent: Element);
+  external "dom" name "AppendTo";
+
+public routine InsertBefore(const newNode: Element; const ref: Element);
+  external "dom" name "InsertBefore";
+
+public routine Clone(const elem: Element): Element;
+  external "dom" name "Clone";
+
+public routine Parent(const elem: Element): Element;
+  external "dom" name "Parent";
+
+public routine FirstChild(const elem: Element): Element;
+  external "dom" name "FirstChild";
+
+public routine NextSibling(const elem: Element): Element;
+  external "dom" name "NextSibling";
+
+public routine ChildCount(const elem: Element): int32;
+  external "dom" name "ChildCount";
+
+// ---- Attributes and Content ----
+
+public routine SetAttr(const elem: Element; const attrName: ptr to char; const value: ptr to char);
+  external "dom" name "SetAttr";
+
+routine GetAttrInto(const elem: Element; const attrName: ptr to char; const buf: ptr to char; const bufSize: int64): int64;
+  external "dom" name "GetAttr";
+
+public routine RemoveAttr(const elem: Element; const attrName: ptr to char);
+  external "dom" name "RemoveAttr";
+
+public routine HasAttr(const elem: Element; const attrName: ptr to char): bool;
+  external "dom" name "HasAttr";
+
+public routine SetText(const elem: Element; const text: ptr to char);
+  external "dom" name "SetText";
+
+routine GetTextInto(const elem: Element; const buf: ptr to char; const bufSize: int64): int64;
+  external "dom" name "GetText";
+
+public routine SetHTML(const elem: Element; const html: ptr to char);
+  external "dom" name "SetHTML";
+
+routine GetHTMLInto(const elem: Element; const buf: ptr to char; const bufSize: int64): int64;
+  external "dom" name "GetHTML";
+
+public routine SetValue(const elem: Element; const val: ptr to char);
+  external "dom" name "SetValue";
+
+routine GetValueInto(const elem: Element; const buf: ptr to char; const bufSize: int64): int64;
+  external "dom" name "GetValue";
+
+// ---- CSS / Classes ----
+
+public routine SetStyle(const elem: Element; const prop: ptr to char; const val: ptr to char);
+  external "dom" name "SetStyle";
+
+routine GetStyleInto(const elem: Element; const prop: ptr to char; const buf: ptr to char; const bufSize: int64): int64;
+  external "dom" name "GetStyle";
+
+public routine AddClass(const elem: Element; const cls: ptr to char);
+  external "dom" name "AddClass";
+
+public routine RemoveClass(const elem: Element; const cls: ptr to char);
+  external "dom" name "RemoveClass";
+
+public routine HasClass(const elem: Element; const cls: ptr to char): bool;
+  external "dom" name "HasClass";
+
+public routine ToggleClass(const elem: Element; const cls: ptr to char);
+  external "dom" name "ToggleClass";
+
+// ---- Visibility and Focus ----
+
+public routine Show(const elem: Element);
+  external "dom" name "Show";
+
+public routine Hide(const elem: Element);
+  external "dom" name "Hide";
+
+public routine IsVisible(const elem: Element): bool;
+  external "dom" name "IsVisible";
+
+public routine Focus(const elem: Element);
+  external "dom" name "Focus";
+
+public routine Blur(const elem: Element);
+  external "dom" name "Blur";
+
+public routine Enable(const elem: Element);
+  external "dom" name "Enable";
+
+public routine Disable(const elem: Element);
+  external "dom" name "Disable";
+
+public routine IsEnabled(const elem: Element): bool;
+  external "dom" name "IsEnabled";
+
+// ---- Geometry (read-only, getBoundingClientRect) ----
+
+public routine GetX(const elem: Element): float64;
+  external "dom" name "GetX";
+
+public routine GetY(const elem: Element): float64;
+  external "dom" name "GetY";
+
+public routine GetWidth(const elem: Element): float64;
+  external "dom" name "GetWidth";
+
+public routine GetHeight(const elem: Element): float64;
+  external "dom" name "GetHeight";
+
+// ---- Events (poll model) ----
+
+public routine Listen(const elem: Element; const eventType: ptr to char);
+  external "dom" name "Listen";
+
+public routine Unlisten(const elem: Element; const eventType: ptr to char);
+  external "dom" name "Unlisten";
+
+public routine HasEvent(const elem: Element; const eventType: ptr to char): bool;
+  external "dom" name "HasEvent";
+
+public routine NextEvent(const elem: Element; const eventType: ptr to char): bool;
+  external "dom" name "NextEvent";
+
+public routine EventX(): float64;
+  external "dom" name "EventX";
+
+public routine EventY(): float64;
+  external "dom" name "EventY";
+
+public routine EventKeyCode(): int32;
+  external "dom" name "EventKeyCode";
+
+public routine EventButton(): int32;
+  external "dom" name "EventButton";
+
+routine EventValueInto(const buf: ptr to char; const bufSize: int64): int64;
+  external "dom" name "EventValue";
+
+// ---- String-out wrappers ----
+// These follow the query-length / getmem / fill / return pattern.
+
+public routine GetAttr(const elem: Element; const attrName: ptr to char): string;
+var 
+  needed: int64;
+  buf: ptr to char;
+  s: string;
+begin
+  needed := GetAttrInto(elem, attrName, nil, 0);
+  getmem(buf);
+  resizemem(buf, needed + 1);
+  GetAttrInto(elem, attrName, buf, needed + 1);
+  s := buf;
+  freemem(buf);
+  return s;
+end;
+
+public routine GetText(const elem: Element): string;
+var 
+  needed: int64;
+  buf: ptr to char;
+  s: string;
+begin
+  needed := GetTextInto(elem, nil, 0);
+  getmem(buf);
+  resizemem(buf, needed + 1);
+  GetTextInto(elem, buf, needed + 1);
+  s := buf;
+  freemem(buf);
+  return s;
+end;
+
+public routine GetHTML(const elem: Element): string;
+var
+  needed: int64;
+  buf: ptr to char;
+  s: string;
+begin
+  needed := GetHTMLInto(elem, nil, 0);
+  getmem(buf);
+  resizemem(buf, needed + 1);
+  GetHTMLInto(elem, buf, needed + 1);
+  s := buf;
+  freemem(buf);
+  return s;
+end;
+
+public routine GetValue(const elem: Element): string;
+var 
+  needed: int64;
+  buf: ptr to char;
+  s: string;
+begin
+  needed := GetValueInto(elem, nil, 0);
+  getmem(buf);
+  resizemem(buf, needed + 1);
+  GetValueInto(elem, buf, needed + 1);
+  s := buf;
+  freemem(buf);
+  return s;
+end;
+
+public routine GetStyle(const elem: Element; const prop: ptr to char): string;
+var
+  needed: int64;
+  buf: ptr to char;
+  s: string;
+begin
+  needed := GetStyleInto(elem, prop, nil, 0);
+  getmem(buf);
+  resizemem(buf, needed + 1);
+  GetStyleInto(elem, prop, buf, needed + 1);
+  s := buf;
+  freemem(buf);
+  return s;
+end;
+
+public routine EventValue(): string;
+var
+  needed: int64;
+  buf: ptr to char;
+  s: string;
+begin
+  needed := EventValueInto(nil, 0);
+  getmem(buf);
+  resizemem(buf, needed + 1);
+  EventValueInto(buf, needed + 1);
+  s := buf;
+  freemem(buf);
+  return s;
+end;
+
+end.

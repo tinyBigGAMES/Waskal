@@ -1,0 +1,31 @@
+/*******************************************************************************
+  Waskal™ Programming Language
+
+  Copyright © 2026-present tinyBigGAMES™ LLC
+  All Rights Reserved.
+
+  https://waskal.org
+
+  See LICENSE for license information
+ -------------------------------------------------------------------------------
+  embedded_image.wkl
+  Demonstrates the embedded asset system. A PNG image is bundled into the
+  single HTML output via @asset, deflate-compressed and base64-encoded.
+  At runtime, the asset is decompressed, preloaded as an ImageBitmap, and
+  drawn on an HTML5 canvas with transparency.
+*******************************************************************************/
+
+module exe embedded_image;
+
+@favicon "$P:res/assets/icons/waskal.ico";
+@asset "$P:res/assets/images/waskal.png" "assets/images";
+
+import
+  canvas2d;
+
+begin
+  canvas2d.Init(640, 480);
+  canvas2d.Clear(70, 30, 120);
+  canvas2d.DrawImage("assets/images/waskal.png", 18, 136, 603, 208);
+  println("Asset demo: image drawn");
+end.

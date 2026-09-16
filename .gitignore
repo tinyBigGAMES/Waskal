@@ -91,13 +91,11 @@ checkpoint.yml
 checkpoint.zip
 checkpoint_base.zip
 distro.yml
-!bin/res/*
-!bin/res/wasm/esbuild.exe
-!bin/res/wasm/wasm-merge.exe
-!bin/res/wasm/wasm-opt.exe
-
 bin/build-all-tests.cmd
 bin/build-waskal.cmd
 bin/out.txt
 bin/run-waskal.cmd
 bin/waskal.txt
+/projects/testbed
+/bin/res/assets
+docs/Waskal.pdf

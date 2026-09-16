@@ -1,0 +1,235 @@
+/*******************************************************************************
+  Waskal™ Programming Language
+
+  Copyright © 2026-present tinyBigGAMES™ LLC
+  All Rights Reserved.
+
+  https://waskal.org
+
+  See LICENSE for license information
+ -------------------------------------------------------------------------------
+  probe_dom.wkl
+
+  Exercises the dom standard library module.
+  Build: waskal probe_dom
+  Run:   waskal probe_dom -r  (open browser, check console for PASS/FAIL)
+*******************************************************************************/
+
+module exe probe_dom;
+
+import dom;
+
+var e: dom.Element;
+var child: dom.Element;
+var parent: dom.Element;
+var body: dom.Element;
+var clone: dom.Element;
+var sibling: dom.Element;
+var first: dom.Element;
+var input: dom.Element;
+var s: string;
+var n: int32;
+var w: float64;
+
+begin
+  println("probe_dom: start");
+
+  // 1. Body
+  body := dom.Body();
+  if body <> 0 then
+    println("PASS: Body() returned handle %d", body)
+  else
+    println("FAIL: Body() returned 0");
+  end;
+
+  // 2. Create elements
+  e := dom.Create("div");
+  if e <> 0 then
+    println("PASS: Create(div) returned handle %d", e)
+  else
+    println("FAIL: Create(div) returned 0");
+  end;
+
+  // 3. SetText / GetText round-trip
+  dom.SetText(e, "Hello DOM");
+  s := dom.GetText(e);
+  if s = "Hello DOM" then
+    println("PASS: SetText/GetText round-trip")
+  else
+    println("FAIL: GetText returned '%s'", s);
+  end;
+
+  // 4. SetAttr / GetAttr / HasAttr / RemoveAttr
+  dom.SetAttr(e, "data-test", "42");
+  if dom.HasAttr(e, "data-test") then
+    println("PASS: HasAttr after SetAttr")
+  else
+    println("FAIL: HasAttr returned false");
+  end;
+  s := dom.GetAttr(e, "data-test");
+  if s = "42" then
+    println("PASS: GetAttr returned '42'")
+  else
+    println("FAIL: GetAttr returned '%s'", s);
+  end;
+  dom.RemoveAttr(e, "data-test");
+  if not dom.HasAttr(e, "data-test") then
+    println("PASS: HasAttr false after RemoveAttr")
+  else
+    println("FAIL: HasAttr still true after RemoveAttr");
+  end;
+
+  // 5. AppendTo Body, ChildCount, Parent
+  dom.AppendTo(e, body);
+  n := dom.ChildCount(body);
+  println("INFO: Body child count after append: %d", n);
+  parent := dom.Parent(e);
+  if parent <> 0 then
+    println("PASS: Parent() returned handle %d", parent)
+  else
+    println("FAIL: Parent() returned 0");
+  end;
+  dom.Release(parent);
+
+  // 6. AddClass / RemoveClass / HasClass / ToggleClass
+  dom.AddClass(e, "test-class");
+  if dom.HasClass(e, "test-class") then
+    println("PASS: HasClass after AddClass")
+  else
+    println("FAIL: HasClass returned false");
+  end;
+  dom.ToggleClass(e, "test-class");
+  if not dom.HasClass(e, "test-class") then
+    println("PASS: HasClass false after ToggleClass")
+  else
+    println("FAIL: HasClass still true after ToggleClass");
+  end;
+  dom.RemoveClass(e, "nonexistent");
+  println("PASS: RemoveClass on missing class did not crash");
+
+  // 7. SetStyle / GetStyle
+  dom.SetStyle(e, "color", "red");
+  s := dom.GetStyle(e, "color");
+  if s = "red" then
+    println("PASS: GetStyle returned 'red'")
+  else
+    println("FAIL: GetStyle returned '%s'", s);
+  end;
+
+  // 8. Show / Hide / IsVisible
+  dom.Show(e);
+  // IsVisible requires the element to be in the DOM (which it is)
+  dom.Hide(e);
+  if not dom.IsVisible(e) then
+    println("PASS: IsVisible false after Hide")
+  else
+    println("FAIL: IsVisible true after Hide");
+  end;
+  dom.Show(e);
+
+  // 9. SetValue / GetValue (on an input element)
+  input := dom.Create("input");
+  dom.AppendTo(input, body);
+  dom.SetValue(input, "test-value");
+  s := dom.GetValue(input);
+  if s = "test-value" then
+    println("PASS: SetValue/GetValue round-trip")
+  else
+    println("FAIL: GetValue returned '%s'", s);
+  end;
+
+  // 10. GetX/GetY/GetWidth/GetHeight (element must be in DOM)
+  dom.SetStyle(e, "width", "100px");
+  dom.SetStyle(e, "height", "50px");
+  w := dom.GetWidth(e);
+  if w > 0.0 then
+    println("PASS: GetWidth returned %f", w)
+  else
+    println("FAIL: GetWidth returned %f", w);
+  end;
+
+  // 11. Listen / HasEvent / NextEvent / EventX / EventY (programmatic click)
+  dom.Listen(e, "click");
+  if not dom.HasEvent(e, "click") then
+    println("PASS: HasEvent false before any click")
+  else
+    println("FAIL: HasEvent true before any click");
+  end;
+  // Note: programmatic dispatchEvent would require JS, so we just test the API
+  // compiles and the empty-queue path works
+  if not dom.NextEvent(e, "click") then
+    println("PASS: NextEvent false on empty queue")
+  else
+    println("FAIL: NextEvent true on empty queue");
+  end;
+  dom.Unlisten(e, "click");
+  println("PASS: Listen/Unlisten did not crash");
+
+  // 12. Clone, InsertBefore, FirstChild, NextSibling
+  child := dom.Create("span");
+  dom.SetText(child, "child1");
+  dom.AppendTo(child, e);
+
+  clone := dom.Clone(child);
+  if clone <> 0 then
+    println("PASS: Clone returned handle %d", clone)
+  else
+    println("FAIL: Clone returned 0");
+  end;
+  dom.InsertBefore(clone, child);
+
+  first := dom.FirstChild(e);
+  if first <> 0 then
+    println("PASS: FirstChild returned handle %d", first)
+  else
+    println("FAIL: FirstChild returned 0");
+  end;
+
+  sibling := dom.NextSibling(first);
+  if sibling <> 0 then
+    println("PASS: NextSibling returned handle %d", sibling)
+  else
+    println("FAIL: NextSibling returned 0");
+  end;
+
+  // 13. SetHTML / GetHTML
+  dom.SetHTML(e, "<b>bold</b>");
+  s := dom.GetHTML(e);
+  if s = "<b>bold</b>" then
+    println("PASS: SetHTML/GetHTML round-trip")
+  else
+    println("FAIL: GetHTML returned '%s'", s);
+  end;
+
+  // 14. Enable / Disable / IsEnabled
+  dom.Disable(input);
+  if not dom.IsEnabled(input) then
+    println("PASS: IsEnabled false after Disable")
+  else
+    println("FAIL: IsEnabled true after Disable");
+  end;
+  dom.Enable(input);
+  if dom.IsEnabled(input) then
+    println("PASS: IsEnabled true after Enable")
+  else
+    println("FAIL: IsEnabled false after Enable");
+  end;
+
+  // 15. Focus / Blur (no crash test)
+  dom.Focus(input);
+  dom.Blur(input);
+  println("PASS: Focus/Blur did not crash");
+
+  // 16. Remove (removes from DOM and releases handle)
+  dom.Remove(input);
+  println("PASS: Remove(input) did not crash");
+  dom.Remove(clone);
+  dom.Release(first);
+  dom.Release(sibling);
+  dom.Release(child);
+  dom.Remove(e);
+  dom.Release(body);
+  println("PASS: all handles released");
+
+  println("probe_dom: done");
+end.

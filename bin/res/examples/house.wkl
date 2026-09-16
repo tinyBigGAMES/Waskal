@@ -1,0 +1,81 @@
+/*******************************************************************************
+  Waskal™ Programming Language
+
+  Copyright © 2026-present tinyBigGAMES™ LLC
+  All Rights Reserved.
+
+  https://waskal.org
+
+  See LICENSE for license information
+ -------------------------------------------------------------------------------
+  house.wkl
+  Static 2D drawing demo using the canvas2d module unit.
+  Draws a simple scene: sky, ground, house, sun.
+*******************************************************************************/
+
+module exe house;
+
+@favicon "$P:res/assets/icons/waskal.ico";
+
+import
+  canvas2d;
+
+var
+  i: int32;
+
+begin
+  // Create an 800x600 canvas
+  canvas2d.Init(800, 600);
+
+  // Sky
+  canvas2d.Clear(100, 149, 237);
+
+  // Ground
+  canvas2d.Rect(0, 400, 800, 200, 34, 139, 34);
+
+  // House body
+  canvas2d.Rect(250, 250, 200, 150, 178, 102, 51);
+
+  // Door
+  canvas2d.Rect(325, 320, 50, 80, 101, 67, 33);
+
+  // Left window
+  canvas2d.Rect(275, 280, 40, 40, 173, 216, 230);
+
+  // Right window
+  canvas2d.Rect(385, 280, 40, 40, 173, 216, 230);
+
+  // Roof (draw as a series of lines to make a triangle)
+  i := 0;
+  while i < 100 do
+    canvas2d.Line(250 + i, 250, 350, 150, 139, 69, 19, 2);
+    canvas2d.Line(450 - i, 250, 350, 150, 139, 69, 19, 2);
+    i := i + 1;
+  end;
+
+  // Sun
+  canvas2d.Circle(650, 100, 60, 255, 223, 0);
+
+  // Sun rays
+  canvas2d.Line(650, 20, 650, 0, 255, 200, 0, 3);
+  canvas2d.Line(580, 50, 560, 30, 255, 200, 0, 3);
+  canvas2d.Line(720, 50, 740, 30, 255, 200, 0, 3);
+  canvas2d.Line(570, 100, 550, 100, 255, 200, 0, 3);
+  canvas2d.Line(730, 100, 750, 100, 255, 200, 0, 3);
+  canvas2d.Line(580, 150, 560, 170, 255, 200, 0, 3);
+  canvas2d.Line(720, 150, 740, 170, 255, 200, 0, 3);
+
+  // Fence posts
+  i := 0;
+  while i < 800 do
+    canvas2d.Rect(i, 370, 6, 40, 210, 180, 140);
+    canvas2d.Rect(i - 2, 375, 10, 4, 210, 180, 140);
+    i := i + 30;
+  end;
+
+  // Fence rails
+  canvas2d.Rect(0, 380, 800, 4, 210, 180, 140);
+  canvas2d.Rect(0, 395, 800, 4, 210, 180, 140);
+
+  println("Canvas demo rendered.");
+end.

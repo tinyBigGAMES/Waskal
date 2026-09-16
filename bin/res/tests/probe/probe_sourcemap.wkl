@@ -1,0 +1,22 @@
+/*******************************************************************************
+  Waskal™ Programming Language
+
+  Copyright © 2026-present tinyBigGAMES™ LLC
+  All Rights Reserved.
+
+  https://waskal.org
+
+  See LICENSE for license information
+ -------------------------------------------------------------------------------
+  probe_sourcemap.wkl
+*******************************************************************************/
+
+module exe probe_sourcemap;
+
+// Uncaught runtime exception: the reported location must map back to the
+// throwcode line below via the source map.
+begin
+  println("before throw");
+  throwcode(42, "sourcemap probe");
+  println("should not reach here");
+end.

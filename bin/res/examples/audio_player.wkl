@@ -1,0 +1,182 @@
+/*******************************************************************************
+  Waskal™ Programming Language
+
+  Copyright © 2026-present tinyBigGAMES™ LLC
+  All Rights Reserved.
+
+  https://waskal.org
+
+  See LICENSE for license information
+ -------------------------------------------------------------------------------
+  audio_player.wkl
+  Proves the audio std module: five one-shot sfx on keys 1-5, a looping
+  engine voice toggled with SPACE (pitch follows the mouse X), a streamed
+  music track toggled with M, paused/resumed with P, faded out with F.
+  Click or press any key first -- the browser will not play sound before a
+  gesture. ESC quits.
+*******************************************************************************/
+
+module exe audio_player;
+
+import 
+  canvas2d,
+  frame,
+  input,
+  audio;
+
+@favicon "$P:res/assets/icons/waskal.ico";
+
+// Equivalent per-file form:
+// @asset "$P:res/assets/audio/music/song01.ogg" "assets/audio/music";
+// @asset "$P:res/assets/audio/sfx/digthis.ogg" "assets/audio/sfx";
+// @asset "$P:res/assets/audio/sfx/engine_player.ogg" "assets/audio/sfx";
+// @asset "$P:res/assets/audio/sfx/explo_enemy.ogg" "assets/audio/sfx";
+// @asset "$P:res/assets/audio/sfx/explo_rock.ogg" "assets/audio/sfx";
+// @asset "$P:res/assets/audio/sfx/samp0.ogg" "assets/audio/sfx";
+@assets "$P:res/assets/audio" "assets" "*.ogg";
+
+const
+  W = 800;
+  H = 600;
+  TITLE: string = "Waskal Audio";
+  FONT: string = "bold 22px sans-serif";
+  SMALL: string = "16px sans-serif";
+  BG: string = "#101820";
+  TEXT_COLOUR: string = "rgba(255, 255, 255, 0.9)";
+  DIM: string = "rgba(255, 255, 255, 0.5)";
+  ACCENT: string = "#ffc83c";
+
+var
+  sfx: array[0..4] of audio.Sound;
+  engine: audio.Sound;
+  engineVoice: audio.Voice;
+  song: audio.Music;
+  fired: int32;
+
+routine Update(const dt: float64);
+var pitch: float64;
+begin
+  if input.KeyPressed(input.KEY_ESCAPE) then
+    frame.Stop();
+  end;
+
+  if input.KeyPressed(input.KEY_1) then
+    audio.Play(sfx[0]);
+    fired := fired + 1;
+  end;
+  if input.KeyPressed(input.KEY_2) then
+    audio.Play(sfx[1]);
+    fired := fired + 1;
+  end;
+  if input.KeyPressed(input.KEY_3) then
+    audio.Play(sfx[2]);
+    fired := fired + 1;
+  end;
+  if input.KeyPressed(input.KEY_4) then
+    audio.PlayEx(sfx[3], 0.8, 1.0, -0.8, false);
+    fired := fired + 1;
+  end;
+  if input.KeyPressed(input.KEY_5) then
+    audio.PlayEx(sfx[4], 0.8, 1.0, 0.8, false);
+    fired := fired + 1;
+  end;
+
+  // Looping engine: SPACE toggles; pitch follows mouse X (0.5 .. 2.0)
+  if input.KeyPressed(input.KEY_SPACE) then
+    if audio.IsVoicePlaying(engineVoice) then
+      audio.StopVoice(engineVoice);
+      engineVoice := 0;
+    else
+      engineVoice := audio.PlayEx(engine, 0.7, 1.0, 0.0, true);
+    end;
+  end;
+  if audio.IsVoicePlaying(engineVoice) then
+    pitch := 0.5 + 1.5 * (input.MouseX() / float64(W));
+    audio.SetVoicePitch(engineVoice, pitch);
+  end;
+
+  if input.KeyPressed(input.KEY_M) then
+    if audio.IsMusicPlaying() then
+      audio.StopMusic();
+    else
+      audio.SetMusicVolume(1.0);
+      audio.PlayMusic(song, true);
+    end;
+  end;
+  if input.KeyPressed(input.KEY_P) then
+    if audio.IsMusicPlaying() then
+      audio.PauseMusic();
+    else
+      audio.ResumeMusic();
+    end;
+  end;
+  if input.KeyPressed(input.KEY_F) then
+    audio.FadeMusic(0.0, 2.0);
+  end;
+end;
+
+routine Render();
+var status: string;
+begin
+  canvas2d.SetFillStyle(BG);
+  canvas2d.FillRect(0.0, 0.0, float64(W), float64(H));
+
+  canvas2d.SetFont(FONT);
+  canvas2d.SetFillStyle(TEXT_COLOUR);
+  canvas2d.FillText(TITLE, 20.0, 40.0);
+
+  canvas2d.SetFont(SMALL);
+  canvas2d.SetFillStyle(ACCENT);
+  if audio.Unlock() then
+    canvas2d.FillText("audio unlocked", 20.0, 70.0);
+  else
+    canvas2d.FillText("click or press a key to unlock audio", 20.0, 70.0);
+  end;
+
+  canvas2d.SetFillStyle(TEXT_COLOUR);
+  canvas2d.FillText("1-5   one-shot sfx (4 = left, 5 = right)", 20.0, 110.0);
+  canvas2d.FillText("SPACE toggle engine loop, mouse X = pitch", 20.0, 135.0);
+  canvas2d.FillText("M     play / stop music     P  pause / resume     F  fade out 2s", 20.0, 160.0);
+  canvas2d.FillText("ESC   quit", 20.0, 185.0);
+
+  canvas2d.SetFillStyle(DIM);
+  if audio.IsReady() then
+    status := "sounds decoded";
+  else
+    status := "decoding...";
+  end;
+  canvas2d.FillText(format("%s   sfx fired: %d", status, fired), 20.0, 230.0);
+  if audio.IsVoicePlaying(engineVoice) then
+    canvas2d.FillText("engine: running", 20.0, 255.0);
+  else
+    canvas2d.FillText("engine: stopped", 20.0, 255.0);
+  end;
+  if audio.IsMusicPlaying() then
+    canvas2d.FillText(format("music: %.1f / %.1f s   volume %.2f", audio.MusicPosition(), audio.MusicDuration(), audio.GetMusicVolume()), 20.0, 280.0);
+  else
+    canvas2d.FillText("music: stopped", 20.0, 280.0);
+  end;
+  canvas2d.FillText(format("%.0f fps", frame.FPS()), 20.0, 320.0);
+end;
+
+routine Shutdown();
+begin
+  audio.StopAllSounds();
+  audio.StopMusic();
+  println("audio_player: sfx fired %d", fired);
+end;
+
+begin
+  fired := 0;
+  engineVoice := 0;
+  canvas2d.Init(W, H);
+  sfx[0] := audio.LoadSound("assets/audio/sfx/digthis.ogg");
+  sfx[1] := audio.LoadSound("assets/audio/sfx/explo_enemy.ogg");
+  sfx[2] := audio.LoadSound("assets/audio/sfx/explo_rock.ogg");
+  sfx[3] := audio.LoadSound("assets/audio/sfx/samp0.ogg");
+  sfx[4] := audio.LoadSound("assets/audio/sfx/digthis.ogg");
+  engine := audio.LoadSound("assets/audio/sfx/engine_player.ogg");
+  song := audio.LoadMusic("assets/audio/music/song01.ogg");
+  frame.SetTargetFPS(60.0);
+  frame.Run(Update, Render, Shutdown);
+end.

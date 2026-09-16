@@ -1,0 +1,391 @@
+/*******************************************************************************
+  Waskal™ Programming Language
+
+  Copyright © 2026-present tinyBigGAMES™ LLC
+  All Rights Reserved.
+
+  https://waskal.org
+
+  See LICENSE for license information
+ -------------------------------------------------------------------------------
+  dom_playground.wkl
+
+  Interactive DOM demo. Creates a grid of colored tiles. Click a tile to cycle
+  its color and grow it briefly. Buttons add a row, reset the board, or toggle
+  dark/light theme. Shows total clicks and tile count live.
+
+  Build: waskal dom_playground
+  Run:   waskal dom_playground -r
+*******************************************************************************/
+
+module exe dom_playground;
+
+import 
+  dom,
+  frame,
+  input;
+  
+@favicon "$P:res/assets/icons/waskal.ico";  
+
+const
+  COLS       = 8;
+  INIT_ROWS  = 4;
+  MAX_TILES  = 256;
+  NUM_COLORS = 10;
+
+  // a palette of 10 strong colors
+  C0  = "#e74c3c";   // red
+  C1  = "#e67e22";   // orange
+  C2  = "#f1c40f";   // yellow
+  C3  = "#2ecc71";   // green
+  C4  = "#1abc9c";   // teal
+  C5  = "#3498db";   // blue
+  C6  = "#9b59b6";   // purple
+  C7  = "#e84393";   // pink
+  C8  = "#00cec9";   // cyan
+  C9  = "#fdcb6e";   // gold
+
+var
+  body:       dom.Element;
+  container:  dom.Element;
+  grid:       dom.Element;
+  statsElem:  dom.Element;
+  btnAdd:     dom.Element;
+  btnReset:   dom.Element;
+  btnTheme:   dom.Element;
+
+  tiles:      array[0..MAX_TILES-1] of dom.Element;
+  colorIdx:   array[0..MAX_TILES-1] of int32;
+  tileClicks: array[0..MAX_TILES-1] of int32;
+  tileCount:  int32;
+  totalClicks: int32;
+  dark:       bool;
+  seed:       int64;
+
+// Small linear congruential generator; returns 0.0 .. 1.0 (same as particles.wkl)
+routine Rnd(): float64;
+begin
+  seed := (seed * 1103515245 + 12345) mod 2147483648;
+  return float64(seed) / 2147483648.0;
+end;
+
+routine RandColor(): int32;
+begin
+  return int32(Rnd() * float64(NUM_COLORS));
+end;
+
+routine ColorAt(const idx: int32): string;
+begin
+  if idx = 0 then return C0; end;
+  if idx = 1 then return C1; end;
+  if idx = 2 then return C2; end;
+  if idx = 3 then return C3; end;
+  if idx = 4 then return C4; end;
+  if idx = 5 then return C5; end;
+  if idx = 6 then return C6; end;
+  if idx = 7 then return C7; end;
+  if idx = 8 then return C8; end;
+  return C9;
+end;
+
+routine UpdateStats();
+begin
+  dom.SetText(statsElem,
+    format("%d tiles  |  %d clicks", tileCount, totalClicks));
+end;
+
+routine ApplyTheme();
+begin
+  if dark then
+    dom.SetStyle(body, "background", "#1a1a2e");
+    dom.SetStyle(body, "color", "#e0e0e0");
+    dom.SetStyle(container, "background", "#16213e");
+    dom.SetStyle(container, "box-shadow", "0 8px 32px rgba(0,0,0,0.5)");
+  else
+    dom.SetStyle(body, "background", "#f0f0f5");
+    dom.SetStyle(body, "color", "#222");
+    dom.SetStyle(container, "background", "#ffffff");
+    dom.SetStyle(container, "box-shadow", "0 8px 32px rgba(0,0,0,0.12)");
+  end;
+end;
+
+routine StyleButton(const btn: dom.Element);
+begin
+  dom.SetStyle(btn, "padding", "10px 20px");
+  dom.SetStyle(btn, "border", "none");
+  dom.SetStyle(btn, "border-radius", "8px");
+  dom.SetStyle(btn, "font-size", "14px");
+  dom.SetStyle(btn, "font-weight", "600");
+  dom.SetStyle(btn, "cursor", "pointer");
+  dom.SetStyle(btn, "transition", "transform 0.15s ease, opacity 0.15s ease");
+  dom.SetStyle(btn, "color", "#fff");
+end;
+
+routine AddTile();
+var
+  t: dom.Element;
+  ci: int32;
+begin
+  if tileCount >= MAX_TILES then
+    return;
+  end;
+  ci := RandColor();
+  t := dom.Create("div");
+  dom.SetStyle(t, "width", "56px");
+  dom.SetStyle(t, "height", "56px");
+  dom.SetStyle(t, "border-radius", "12px");
+  dom.SetStyle(t, "background", ColorAt(ci));
+  dom.SetStyle(t, "cursor", "pointer");
+  dom.SetStyle(t, "transition", "transform 0.2s ease, background 0.3s ease");
+  dom.SetStyle(t, "display", "flex");
+  dom.SetStyle(t, "align-items", "center");
+  dom.SetStyle(t, "justify-content", "center");
+  dom.SetStyle(t, "font-size", "16px");
+  dom.SetStyle(t, "font-weight", "bold");
+  dom.SetStyle(t, "color", "rgba(255,255,255,0.85)");
+  dom.SetStyle(t, "user-select", "none");
+  dom.SetText(t, "0");
+
+  dom.Listen(t, "click");
+  dom.AppendTo(t, grid);
+
+  tiles[tileCount] := t;
+  colorIdx[tileCount] := ci;
+  tileClicks[tileCount] := 0;
+  tileCount := tileCount + 1;
+end;
+
+routine AddRow();
+var 
+  i: int32;
+begin
+  i := 0;
+  while i < COLS do
+    AddTile();
+    i := i + 1;
+  end;
+  UpdateStats();
+end;
+
+routine ClearGrid();
+var 
+  i: int32;
+begin
+  i := 0;
+  while i < tileCount do
+    dom.Remove(tiles[i]);
+    tiles[i] := 0;
+    colorIdx[i] := 0;
+    tileClicks[i] := 0;
+    i := i + 1;
+  end;
+  tileCount := 0;
+  totalClicks := 0;
+  UpdateStats();
+end;
+
+// -- frame loop callbacks --
+
+routine Update(const dt: float64);
+var
+  i: int32;
+  ci: int32;
+begin
+  // ESC quits
+  if input.KeyPressed(input.KEY_ESCAPE) then
+    frame.Stop();
+    return;
+  end;
+
+  // poll tile clicks
+  i := 0;
+  while i < tileCount do
+    while dom.NextEvent(tiles[i], "click") do
+      // cycle color
+      ci := (colorIdx[i] + 1) mod NUM_COLORS;
+      colorIdx[i] := ci;
+      dom.SetStyle(tiles[i], "background", ColorAt(ci));
+
+      // bump this tile's counter and the global total
+      tileClicks[i] := tileClicks[i] + 1;
+      totalClicks := totalClicks + 1;
+      dom.SetText(tiles[i], format("%d", tileClicks[i]));
+      UpdateStats();
+    end;
+    i := i + 1;
+  end;
+
+  // poll button clicks
+  if dom.HasEvent(btnAdd, "click") then
+    while dom.NextEvent(btnAdd, "click") do
+      AddRow();
+    end;
+  end;
+  if dom.HasEvent(btnReset, "click") then
+    while dom.NextEvent(btnReset, "click") do
+      ClearGrid();
+      // re-seed and rebuild initial grid
+      seed := 42;
+      i := 0;
+      while i < INIT_ROWS do
+        AddRow();
+        i := i + 1;
+      end;
+    end;
+  end;
+  if dom.HasEvent(btnTheme, "click") then
+    while dom.NextEvent(btnTheme, "click") do
+      dark := not dark;
+      ApplyTheme();
+      if dark then
+        dom.SetText(btnTheme, "Light Mode");
+      else
+        dom.SetText(btnTheme, "Dark Mode");
+      end;
+    end;
+  end;
+end;
+
+routine Render();
+begin
+  // DOM rendering is immediate -- nothing to batch
+end;
+
+routine Shutdown();
+begin
+  ClearGrid();
+  dom.Remove(container);
+
+  // undo every inline style we put on body so the console renders normally
+  dom.SetStyle(body, "margin", "");
+  dom.SetStyle(body, "padding", "");
+  dom.SetStyle(body, "font-family", "");
+  dom.SetStyle(body, "display", "");
+  dom.SetStyle(body, "justify-content", "");
+  dom.SetStyle(body, "align-items", "");
+  dom.SetStyle(body, "min-height", "");
+  dom.SetStyle(body, "padding-top", "");
+  dom.SetStyle(body, "transition", "");
+  dom.SetStyle(body, "background", "");
+  dom.SetStyle(body, "color", "");
+
+  dom.Release(body);
+end;
+
+// -- setup --
+var
+  header: dom.Element;
+  title: dom.Element;
+  subtitle: dom.Element;
+  toolbar: dom.Element;
+  i: int32;
+
+begin
+  seed := 42;
+  tileCount := 0;
+  totalClicks := 0;
+  dark := true;
+
+  body := dom.Body();
+
+  // app mode: hides the dev console while running; runtime removes it on exit
+  dom.AddClass(body, "wkl-app");
+
+  // global page styles
+  dom.SetStyle(body, "margin", "0");
+  dom.SetStyle(body, "padding", "0");
+  dom.SetStyle(body, "font-family", "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif");
+  dom.SetStyle(body, "display", "flex");
+  dom.SetStyle(body, "justify-content", "center");
+  dom.SetStyle(body, "align-items", "flex-start");
+  dom.SetStyle(body, "min-height", "100vh");
+  dom.SetStyle(body, "padding-top", "40px");
+  dom.SetStyle(body, "transition", "background 0.4s ease, color 0.4s ease");
+
+  // main container
+  container := dom.Create("div");
+  dom.SetStyle(container, "width", "580px");
+  dom.SetStyle(container, "padding", "32px");
+  dom.SetStyle(container, "border-radius", "20px");
+  dom.SetStyle(container, "transition", "background 0.4s ease, box-shadow 0.4s ease");
+  dom.AppendTo(container, body);
+
+  // header
+  header := dom.Create("div");
+  dom.SetStyle(header, "text-align", "center");
+  dom.SetStyle(header, "margin-bottom", "24px");
+  dom.AppendTo(header, container);
+
+  title := dom.Create("h1");
+  dom.SetText(title, "Waskal DOM Playground");
+  dom.SetStyle(title, "margin", "0 0 4px 0");
+  dom.SetStyle(title, "font-size", "28px");
+  dom.SetStyle(title, "letter-spacing", "-0.5px");
+  dom.AppendTo(title, header);
+
+  subtitle := dom.Create("p");
+  dom.SetText(subtitle, "Click tiles to cycle colors. Everything below is built with dom.* calls. ESC to quit.");
+  dom.SetStyle(subtitle, "margin", "0 0 16px 0");
+  dom.SetStyle(subtitle, "font-size", "14px");
+  dom.SetStyle(subtitle, "opacity", "0.6");
+  dom.AppendTo(subtitle, header);
+
+  // stats line
+  statsElem := dom.Create("div");
+  dom.SetStyle(statsElem, "text-align", "center");
+  dom.SetStyle(statsElem, "font-size", "15px");
+  dom.SetStyle(statsElem, "font-weight", "600");
+  dom.SetStyle(statsElem, "margin-bottom", "20px");
+  dom.SetStyle(statsElem, "letter-spacing", "0.5px");
+  dom.AppendTo(statsElem, container);
+
+  // toolbar
+  toolbar := dom.Create("div");
+  dom.SetStyle(toolbar, "display", "flex");
+  dom.SetStyle(toolbar, "gap", "10px");
+  dom.SetStyle(toolbar, "justify-content", "center");
+  dom.SetStyle(toolbar, "margin-bottom", "24px");
+  dom.AppendTo(toolbar, container);
+
+  btnAdd := dom.Create("button");
+  dom.SetText(btnAdd, "+ Add Row");
+  StyleButton(btnAdd);
+  dom.SetStyle(btnAdd, "background", "#3498db");
+  dom.Listen(btnAdd, "click");
+  dom.AppendTo(btnAdd, toolbar);
+
+  btnReset := dom.Create("button");
+  dom.SetText(btnReset, "Reset");
+  StyleButton(btnReset);
+  dom.SetStyle(btnReset, "background", "#e74c3c");
+  dom.Listen(btnReset, "click");
+  dom.AppendTo(btnReset, toolbar);
+
+  btnTheme := dom.Create("button");
+  dom.SetText(btnTheme, "Light Mode");
+  StyleButton(btnTheme);
+  dom.SetStyle(btnTheme, "background", "#6c5ce7");
+  dom.Listen(btnTheme, "click");
+  dom.AppendTo(btnTheme, toolbar);
+
+  // tile grid
+  grid := dom.Create("div");
+  dom.SetStyle(grid, "display", "flex");
+  dom.SetStyle(grid, "flex-wrap", "wrap");
+  dom.SetStyle(grid, "gap", "8px");
+  dom.SetStyle(grid, "justify-content", "center");
+  dom.AppendTo(grid, container);
+
+  // apply initial theme
+  ApplyTheme();
+
+  // populate initial grid
+  i := 0;
+  while i < INIT_ROWS do
+    AddRow();
+    i := i + 1;
+  end;
+
+  // start the frame loop for event polling
+  frame.Run(Update, Render, Shutdown);
+end.

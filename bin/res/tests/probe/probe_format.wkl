@@ -1,0 +1,72 @@
+/*******************************************************************************
+  Waskal™ Programming Language
+
+  Copyright © 2026-present tinyBigGAMES™ LLC
+  All Rights Reserved.
+
+  https://waskal.org
+
+  See LICENSE for license information
+ -------------------------------------------------------------------------------
+  probe_format.wkl
+  Waskal(tm) Programming Language
+
+
+  https://waskal.org
+
+  See LICENSE for license information
+
+  format() intrinsic probe. Every spec println supports, result as a value:
+  assigned, concatenated, nested, passed to a ptr-to-char extern via the
+  implicit cstr wrap. Expected console output is listed inline; run the debug
+  build and confirm Leaked: 0.
+*******************************************************************************/
+
+module exe probe_format;
+
+var
+  a: float64;
+  b: float64;
+  n: int32;
+  u: uint32;
+  big: int64;
+  s: string;
+  ch: char;
+  r: string;
+  t: string;
+
+begin
+  a := 1.5;
+  b := -2.25;
+  n := 42;
+  u := 4294967295;
+  big := 1000000000000;
+  s := "str";
+  ch := "A";
+
+  r := format("d=%d", n);              println(r);            // d=42
+  r := format("u=%u", u);              println(r);            // u=4294967295
+  r := format("x=%x X=%X", n, n);      println(r);            // x=2a X=2A
+  println("x=%x X=%X", n, n);                                 // x=2a X=2A -- println parity
+  r := format("f=%f", a);              println(r);            // f=1.500000
+  r := format("p=%.2f", b);            println(r);            // p=-2.25
+  r := format("s=%s", s);              println(r);            // s=str
+  r := format("c=%c", ch);             println(r);            // c=A
+  r := format("lld=%lld", big);        println(r);            // lld=1000000000000
+  r := format("100%%");                println(r);            // 100% -- single arg parses, unlike println
+  r := format("");                     println("[%s]", r);    // []
+  r := format("no specs");             println(r);            // no specs
+  r := format("lead %d", n);           println(r);            // lead 42
+  r := format("%d trail", n);          println(r);            // 42 trail
+
+  t := format("%s|%s", format("a%d", 1), format("b%d", 2));
+  println(t);                                                 // a1|b2 -- nested, two inner in one outer
+  t := format("%s", format("%s", format("deep %d", 3)));
+  println(t);                                                 // deep 3 -- depth 3
+
+  r := format("x=%d", n) + " " + format("y=%d", n + 1);
+  println(r);                                                 // x=42 y=43 -- two in one expression
+
+  println("%s", format("inline %d", 7));                      // inline 7 -- temp passed straight to println
+  println("\nprobe_format done");
+end.

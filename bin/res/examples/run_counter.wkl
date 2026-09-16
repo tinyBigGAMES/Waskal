@@ -1,0 +1,82 @@
+/*******************************************************************************
+  Waskal™ Programming Language
+
+  Copyright © 2026-present tinyBigGAMES™ LLC
+  All Rights Reserved.
+
+  https://waskal.org
+
+  See LICENSE for license information
+ -------------------------------------------------------------------------------
+  run_counter.wkl
+  Exercises the localstorage std module: availability probe, a run counter
+  that survives page reloads, a UTF-8 round trip, and Length/Key/RemoveItem/
+  Clear over this app's keys. Reload the page and "runs" must go up by one.
+*******************************************************************************/
+
+module exe run_counter;
+
+import 
+  localstorage;
+
+@favicon "$P:res/assets/icons/waskal.ico";
+
+var 
+  runs: int64;
+  text: string;
+  i: int32;
+
+begin
+  if localstorage.Available() then
+    println("localStorage available");
+  else
+    println("localStorage NOT available -- nothing below will persist");
+  end;
+
+  // Test 2: persistence across reloads
+  runs := localstorage.GetInt("runs", 0) + 1;
+  localstorage.SetInt("runs", runs);
+  println("runs = %lld (reload the page: this must increment)", runs);
+
+  // Test 3: UTF-8 round trip (multibyte chars; needed length is in bytes)
+  localstorage.SetItem("greeting", "héllo wörld ✓ 日本");
+  text := localstorage.GetItem("greeting", "<absent>");
+  println("greeting = %s", text);
+  println("missing  = %s", localstorage.GetItem("no_such_key", "<absent>"));
+
+  // Typed helpers
+  localstorage.SetFloat("pi", 3.14159);
+  localstorage.SetBool("flag", true);
+  println("pi   = %f", localstorage.GetFloat("pi", 0.0));
+  if localstorage.GetBool("flag", false) then
+    println("flag = true");
+  else
+    println("flag = false");
+  end;
+  println("hp   = %lld (default, key absent)", localstorage.GetInt("hp", 100));
+
+  // Test 4: Length / Key / RemoveItem / Clear
+  localstorage.Clear();
+  localstorage.SetItem("a", "1");
+  localstorage.SetItem("b", "2");
+  localstorage.SetItem("c", "3");
+  println("after 3 SetItem: Length = %d", localstorage.Length());
+  i := 0;
+  while i < localstorage.Length() do
+    println("  key[%d] = %s", i, localstorage.Key(i));
+    i := i + 1;
+  end;
+  localstorage.RemoveItem("b");
+  println("after RemoveItem(b): Length = %d", localstorage.Length());
+  if localstorage.HasItem("b") then
+    println("HasItem(b) = true (WRONG)");
+  else
+    println("HasItem(b) = false");
+  end;
+  localstorage.Clear();
+  println("after Clear: Length = %d", localstorage.Length());
+
+  // Restore the counter so the reload test keeps working after Clear
+  localstorage.SetInt("runs", runs);
+  println("run_counter done");
+end.

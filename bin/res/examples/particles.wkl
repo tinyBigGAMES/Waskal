@@ -1,0 +1,146 @@
+/*******************************************************************************
+  Waskal™ Programming Language
+
+  Copyright © 2026-present tinyBigGAMES™ LLC
+  All Rights Reserved.
+
+  https://waskal.org
+
+  See LICENSE for license information
+ -------------------------------------------------------------------------------
+  particles.wkl
+  Waskal(tm) Programming Language
+
+
+  https://waskal.org
+
+  See LICENSE for license information
+
+  A few hundred glowing particles launched from the bottom centre, pulled
+  down by gravity, drawn with additive ("lighter") compositing over a
+  translucent clear so they leave soft trails. Escape stops the loop.
+*******************************************************************************/
+
+module exe particles;
+
+import
+  canvas2d,
+  frame,
+  input;
+
+@favicon "$P:res/assets/icons/waskal.ico";
+
+const
+  W = 800;
+  H = 600;
+  COUNT = 400;
+  GRAVITY = 900.0;
+  TITLE: string = "Waskal Particle Fountain";
+  HINT: string = "Press ESC to quit";
+  FONT: string = "bold 28px sans-serif";
+  TRAIL: string = "rgba(0, 0, 0, 0.18)";
+  TITLE_COLOUR: string = "rgba(255, 255, 255, 0.85)";
+  C0: string = "rgba(255, 120,  40, 0.9)";
+  C1: string = "rgba(255, 200,  60, 0.9)";
+  C2: string = "rgba( 80, 200, 255, 0.9)";
+  C3: string = "rgba(255,  80, 180, 0.9)";
+
+var
+  px: array[0..399] of float64;
+  py: array[0..399] of float64;
+  vx: array[0..399] of float64;
+  vy: array[0..399] of float64;
+  life: array[0..399] of float64;
+  tint: array[0..399] of int32;
+  seed: int64;
+
+// Small linear congruential generator; returns 0.0 .. 1.0
+routine Rnd(): float64;
+begin
+  seed := (seed * 1103515245 + 12345) mod 2147483648;
+  return float64(seed) / 2147483648.0;
+end;
+
+routine Spawn(const i: int32);
+begin
+  px[i] := float64(W) * 0.5 + (Rnd() - 0.5) * 20.0;
+  py[i] := float64(H) - 10.0;
+  vx[i] := (Rnd() - 0.5) * 320.0;
+  vy[i] := -(520.0 + Rnd() * 380.0);
+  life[i] := 1.2 + Rnd() * 1.6;
+  tint[i] := int32(Rnd() * 4.0);
+end;
+
+routine Update(const dt: float64);
+var i: int32;
+begin
+  if input.KeyPressed(input.KEY_ESCAPE) then
+    frame.Stop();
+  end;
+  for i := 0 to COUNT - 1 do
+    vy[i] := vy[i] + GRAVITY * dt;
+    px[i] := px[i] + vx[i] * dt;
+    py[i] := py[i] + vy[i] * dt;
+    life[i] := life[i] - dt;
+    if (life[i] <= 0.0) or (py[i] > float64(H) + 20.0) then
+      Spawn(i);
+    end;
+  end;
+end;
+
+routine Render();
+var i: int32;
+var r: float64;
+begin
+  // Translucent clear leaves the previous frames as fading trails
+  canvas2d.SetGlobalCompositeOperation(canvas2d.COMPOSITE_SOURCE_OVER);
+  canvas2d.SetFillStyle(TRAIL);
+  canvas2d.FillRect(0.0, 0.0, float64(W), float64(H));
+
+  // Additive blending makes overlapping particles glow
+  canvas2d.SetGlobalCompositeOperation(canvas2d.COMPOSITE_LIGHTER);
+  for i := 0 to COUNT - 1 do
+    if tint[i] = 0 then
+      canvas2d.SetFillStyle(C0);
+    end;
+    if tint[i] = 1 then
+      canvas2d.SetFillStyle(C1);
+    end;
+    if tint[i] = 2 then
+      canvas2d.SetFillStyle(C2);
+    end;
+    if tint[i] = 3 then
+      canvas2d.SetFillStyle(C3);
+    end;
+    // Shrink as the particle dies
+    r := 2.0 + life[i] * 2.5;
+    canvas2d.BeginPath();
+    canvas2d.Arc(px[i], py[i], r, 0.0, 6.283185307179586, false);
+    canvas2d.Fill();
+  end;
+
+  canvas2d.SetGlobalCompositeOperation(canvas2d.COMPOSITE_SOURCE_OVER);
+  canvas2d.SetFont(FONT);
+  canvas2d.SetFillStyle(TITLE_COLOUR);
+  canvas2d.FillText(TITLE, 20.0, 40.0);
+  canvas2d.FillText(format("%.0f fps", frame.FPS()), 20.0, 70.0);
+  canvas2d.FillText(HINT, 20.0, 100.0);
+end;
+
+routine Shutdown();
+begin
+end;
+
+var i: int32;
+begin
+  canvas2d.Init(W, H);
+  canvas2d.Clear(0, 0, 0);
+  seed := 12345;
+  for i := 0 to COUNT - 1 do
+    Spawn(i);
+    // Stagger start so the fountain is already flowing on frame one
+    life[i] := life[i] * Rnd();
+  end;
+  frame.SetTargetFPS(60.0);
+  frame.Run(Update, Render, Shutdown);
+end.

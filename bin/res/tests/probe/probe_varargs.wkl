@@ -1,0 +1,134 @@
+/*******************************************************************************
+  Waskal™ Programming Language
+
+  Copyright © 2026-present tinyBigGAMES™ LLC
+  All Rights Reserved.
+
+  https://waskal.org
+
+  See LICENSE for license information
+-------------------------------------------------------------------------------
+  probe_varargs.wkl
+  User-defined variadic routine probe. Covers "..." in the parameter list,
+  varargs.count, varargs.next(T), varargs.get(i, T), varargs.reset(), and
+  passing the pack through to another variadic routine. Expected console
+  output is listed inline; run the debug build and confirm Leaked: 0.
+*******************************************************************************/
+
+module exe probe_varargs;
+
+// Sum of int32 arguments, count given explicitly
+routine sumInts(const count: int32; ...): int32;
+var
+  i: int32;
+  total: int32;
+begin
+  total := 0;
+  for i := 0 to count - 1 do
+    total += varargs.next(int32);
+  end;
+  return total;
+end;
+
+// Sum using varargs.count instead of an explicit count
+routine sumAll(...): int32;
+var
+  i: int32;
+  total: int32;
+begin
+  total := 0;
+  for i := 0 to varargs.count - 1 do
+    total += varargs.next(int32);
+  end;
+  return total;
+end;
+
+// Mixed types in one pack, read in order
+routine mixed(...): float64;
+var
+  a: int32;
+  b: int64;
+  c: float64;
+  s: string;
+begin
+  a := varargs.next(int32);
+  b := varargs.next(int64);
+  c := varargs.next(float64);
+  s := varargs.next(string);
+  println("mixed: a=%d b=%lld c=%.2f s=%s count=%d", a, b, c, s, varargs.count);
+  return c;
+end;
+
+// Random access with get, then reset and re-read with next
+routine getAndReset(...): int32;
+var
+  x: int32;
+  y: int32;
+begin
+  x := varargs.get(2, int32);
+  y := varargs.get(0, int32);
+  println("get: [2]=%d [0]=%d", x, y);
+  varargs.reset();
+  x := varargs.next(int32);
+  println("after reset next=%d", x);
+  return x;
+end;
+
+// copy(): the copy carries the cursor and is independent of the original.
+// Includes a string so the copy's refcounting is exercised.
+routine copyPack(...): int32;
+var
+  v: varargs;
+  a: int32;
+  b: int32;
+  s: string;
+begin
+  a := varargs.next(int32);        // original cursor -> 1
+  v := varargs.copy();             // copy of the pack, AddRefs the string slot
+  b := varargs.next(int32);        // original keeps its own cursor: reads [1]
+  s := varargs.next(string);       // reads [2]; copy still holds a ref
+  println("copy: a=%d b=%d s=%s count=%d", a, b, s, varargs.count);
+  return b;                        // v freed here -> Leaked: 0 proves it
+end;
+
+// return of a varargs intrinsic and of a unary-plus expression (D2)
+routine countOf(...): int32;
+begin
+  return varargs.count;
+end;
+
+routine plusOne(const x: int32): int32;
+begin
+  return +x + 1;
+end;
+
+var
+  r: int32;
+  f: float64;
+
+begin
+  r := sumInts(3, 10, 20, 30);
+  println("sumInts=%d", r);                      // sumInts=60
+
+  r := sumAll(1, 2, 3, 4, 5);
+  println("sumAll=%d", r);                       // sumAll=15
+
+  r := sumAll();
+  println("sumAll empty=%d", r);                 // sumAll empty=0
+
+  f := mixed(7, 1000000000000, 2.5, "hello");    // mixed: a=7 b=1000000000000 c=2.50 s=hello count=4
+  println("mixed returned %.1f", f);             // mixed returned 2.5
+
+  r := getAndReset(100, 200, 300);               // get: [2]=300 [0]=100
+                                                 // after reset next=100
+  println("getAndReset=%d", r);                  // getAndReset=100
+
+  r := copyPack(1, 2, "three");                  // copy: a=1 b=2 s=three count=3
+  println("copyPack=%d", r);                     // copyPack=2
+
+  r := countOf(1, 2, 3, 4);
+  println("countOf=%d", r);                      // countOf=4
+
+  r := plusOne(41);
+  println("plusOne=%d", r);                      // plusOne=42
+end.

@@ -1,0 +1,43 @@
+/*******************************************************************************
+  Waskal™ Programming Language
+
+  Copyright © 2026-present tinyBigGAMES™ LLC
+  All Rights Reserved.
+
+  https://waskal.org
+
+  See LICENSE for license information
+ -------------------------------------------------------------------------------
+  probe_nilroutine.wkl
+  Waskal(tm) Programming Language
+
+
+  https://waskal.org
+
+  See LICENSE for license information
+
+  Proves nil is a valid routine reference at the JS boundary: update-only
+  loop, no render, no shutdown handler. Expect "done" then Leaked: 0, exit 0.
+*******************************************************************************/
+
+module exe probe_nilroutine;
+
+import frame;
+
+var
+  updates: int64;
+
+routine Update(const dt: float64);
+begin
+  updates := updates + 1;
+  if updates = 60 then
+    println("done");
+    frame.Stop();
+  end;
+end;
+
+begin
+  updates := 0;
+  frame.Run(Update, nil, nil);
+  println("setup done");
+end.

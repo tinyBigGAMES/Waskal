@@ -1,0 +1,33 @@
+/*******************************************************************************
+  Waskal™ Programming Language
+
+  Copyright © 2026-present tinyBigGAMES™ LLC
+  All Rights Reserved.
+
+  https://waskal.org
+
+  See LICENSE for license information
+ -------------------------------------------------------------------------------
+  probe_extlibs_unit.wkl
+  Waskal(tm) Programming Language
+
+
+  https://waskal.org
+
+  See LICENSE for license information
+
+  Tests importing external routines via a module unit instead of
+  declaring externals inline.
+*******************************************************************************/
+
+module exe probe_extlibs_unit;
+
+import extlibs;
+
+var
+  r: int64;
+begin
+  println("JsAdd(2, 3) = %d", extlibs.JsAdd(2, 3));
+  r := extlibs.Add(10, 20);
+  println("Add(10, 20) = %d", r);
+end.

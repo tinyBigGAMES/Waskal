@@ -1,0 +1,48 @@
+/*******************************************************************************
+  Waskal™ Programming Language
+
+  Copyright © 2026-present tinyBigGAMES™ LLC
+  All Rights Reserved.
+
+  See LICENSE for license information
+ -------------------------------------------------------------------------------
+  probe_printf_float.wkl
+  println format probe for float64. Bare %f vs %.1f, literal text before and
+  after, multiple args, mixed with %d / %lld / %s. Each line names what it
+  expects so a dropped literal is visible.
+*******************************************************************************/
+
+module exe probe_printf_float;
+
+var
+  a: float64;
+  b: float64;
+  n: int32;
+  big: int64;
+  s: string;
+
+begin
+  a := 1.5;
+  b := -2.25;
+  n := 42;
+  big := 1000000000000;
+  s := "str";
+
+  println("=== bare %%f ===");
+  println("A %f B", a);
+  println("A %f B %f C", a, b);
+  println("%f", a);
+  println("lead %f", a);
+  println("%f trail", a);
+
+  println("\n=== %%.1f control ===");
+  println("A %.1f B", a);
+  println("A %.1f B %.1f C", a, b);
+
+  println("\n=== mixed ===");
+  println("d=%d f=%f s=%s", n, a, s);
+  println("f=%f d=%d lld=%lld", a, n, big);
+  println("s=%s f=%f s=%s", s, b, s);
+
+  println("\nprobe_printf_float done");
+end.

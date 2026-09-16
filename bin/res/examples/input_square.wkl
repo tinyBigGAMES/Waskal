@@ -1,0 +1,133 @@
+/*******************************************************************************
+  Waskal™ Programming Language
+
+  Copyright © 2026-present tinyBigGAMES™ LLC
+  All Rights Reserved.
+
+  https://waskal.org
+
+  See LICENSE for license information
+ -------------------------------------------------------------------------------
+  input_square.wkl
+  Waskal(tm) Programming Language
+
+
+  https://waskal.org
+
+  See LICENSE for license information
+
+  Validates the input module: arrows/WASD or the left stick move the square
+  at 200 px/s, left click teleports it to the mouse, right click toggles its
+  colour, the wheel resizes it, Space prints once per press (auto-repeat
+  ignored), Escape stops the loop and the leak report shows 0.
+*******************************************************************************/
+
+module exe input_square;
+
+@favicon "$P:res/assets/icons/waskal.ico";
+
+import
+  canvas2d,
+  frame,
+  input;
+
+const
+  W = 800;
+  H = 600;
+  SPEED = 200.0;
+
+var
+  x: float64;
+  y: float64;
+  boxSize: float64;
+  green: bool;
+
+routine Update(const dt: float64);
+begin
+  if input.KeyDown(input.KEY_LEFT) then
+    x := x - SPEED * dt;
+  end;
+  if input.KeyDown(input.KEY_A) then
+    x := x - SPEED * dt;
+  end;
+  if input.KeyDown(input.KEY_RIGHT) then
+    x := x + SPEED * dt;
+  end;
+  if input.KeyDown(input.KEY_D) then
+    x := x + SPEED * dt;
+  end;
+  if input.KeyDown(input.KEY_UP) then
+    y := y - SPEED * dt;
+  end;
+  if input.KeyDown(input.KEY_W) then
+    y := y - SPEED * dt;
+  end;
+  if input.KeyDown(input.KEY_DOWN) then
+    y := y + SPEED * dt;
+  end;
+  if input.KeyDown(input.KEY_S) then
+    y := y + SPEED * dt;
+  end;
+
+  x := x + input.GamepadAxis(0, input.AXIS_LEFT_X) * SPEED * dt;
+  y := y + input.GamepadAxis(0, input.AXIS_LEFT_Y) * SPEED * dt;
+
+  if input.MousePressed(input.MOUSE_LEFT) then
+    x := input.MouseX();
+    y := input.MouseY();
+  end;
+  if input.MousePressed(input.MOUSE_RIGHT) then
+    green := not green;
+  end;
+  if input.GamepadPressed(0, input.PAD_A) then
+    green := not green;
+  end;
+
+  boxSize := boxSize - input.MouseWheel() * 0.05;
+  if boxSize < 8.0 then
+    boxSize := 8.0;
+  end;
+  if boxSize > 200.0 then
+    boxSize := 200.0;
+  end;
+
+  if input.KeyPressed(input.KEY_SPACE) then
+    println("space pressed");
+  end;
+  if input.KeyPressed(input.KEY_ESCAPE) then
+    frame.Stop();
+  end;
+end;
+
+routine Render();
+begin
+  canvas2d.SetFillStyle("#000");
+  canvas2d.FillRect(0.0, 0.0, 800.0, 600.0);
+  if green then
+    canvas2d.SetFillStyle("#0f0");
+  else
+    canvas2d.SetFillStyle("#f80");
+  end;
+  canvas2d.FillRect(x - boxSize * 0.5, y - boxSize * 0.5, boxSize, boxSize);
+  canvas2d.SetFillStyle("#fff");
+  canvas2d.SetFont("16px monospace");
+  canvas2d.FillText("arrows/WASD/stick move - LMB teleport - RMB/A colour - wheel size - Space prints - Esc quits", 10.0, 20.0);
+  if input.GamepadConnected(0) then
+    canvas2d.FillText("gamepad 0 connected", 10.0, 40.0);
+  end;
+end;
+
+routine Shutdown();
+begin
+  println("shutdown handler");
+end;
+
+begin
+  x := 400.0;
+  y := 300.0;
+  boxSize := 40.0;
+  green := true;
+  canvas2d.Init(W, H);
+  println("setup done, loop running");
+  frame.Run(Update, Render, Shutdown);
+end.

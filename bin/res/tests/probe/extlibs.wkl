@@ -1,0 +1,35 @@
+/*******************************************************************************
+  Waskal™ Programming Language
+
+  Copyright © 2026-present tinyBigGAMES™ LLC
+  All Rights Reserved.
+
+  https://waskal.org
+
+  See LICENSE for license information
+ -------------------------------------------------------------------------------
+  extlibs.wkl
+  Waskal(tm) Programming Language
+
+
+  https://waskal.org
+
+  See LICENSE for license information
+
+  Module unit wrapping external JS and wasm library imports.
+  Consumers import this unit instead of declaring externals inline.
+*******************************************************************************/
+
+module unit extlibs;
+
+@addlibrarypath "$P:res/tests/libs";
+
+// JS external -- resolved from mathjs.js in libs/
+public routine JsAdd(a: int32; b: int32): int32;
+  external "mathjs" name "JsAdd";
+
+// Wasm external -- resolved from mathlib.wasm in libs/
+public routine Add(a: int64; b: int64): int64;
+  external "mathlib" name "Add";
+
+end.

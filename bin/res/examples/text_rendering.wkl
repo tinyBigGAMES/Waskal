@@ -1,0 +1,128 @@
+/*******************************************************************************
+  Waskal™ Programming Language
+
+  Copyright © 2026-present tinyBigGAMES™ LLC
+  All Rights Reserved.
+
+  https://waskal.org
+
+  See LICENSE for license information
+ -------------------------------------------------------------------------------
+  text_rendering.wkl
+  Text surface demo: embedded fonts loaded from @asset bytes via LoadFont /
+  FontsReady, fontVariantCaps, FillTextLines, Fill/StrokeTextWrapped, the ten
+  text drawing-style getters, and SetPlacement(fill) app-mode chrome.
+  Runs as an app: redraws every frame with an FPS readout, prints the getters
+  once, ESC quits.
+*******************************************************************************/
+
+module exe text_rendering;
+
+@favicon "$P:res/assets/icons/waskal.ico";
+@asset "$P:res/assets/fonts/JetBrainsMonoRegular.ttf" "assets/fonts";
+@asset "$P:res/assets/fonts/KenneyMiniSquareMono.ttf" "assets/fonts";
+
+import
+  canvas2d,
+  frame,
+  input;
+
+const
+  W = 800;
+  H = 600;
+  PARA = "Waskal wraps this paragraph in JavaScript with a greedy word breaker. A forced break follows here.\nThis line started after the newline.";
+
+var
+  drawn: bool;
+
+routine PrintGetters();
+begin
+  println("font            = %s", canvas2d.GetFont());
+  println("textAlign       = %s", canvas2d.GetTextAlign());
+  println("textBaseline    = %s", canvas2d.GetTextBaseline());
+  println("direction       = %s", canvas2d.GetDirection());
+  println("letterSpacing   = %s", canvas2d.GetLetterSpacing());
+  println("wordSpacing     = %s", canvas2d.GetWordSpacing());
+  println("fontKerning     = %s", canvas2d.GetFontKerning());
+  println("fontStretch     = %s", canvas2d.GetFontStretch());
+  println("fontVariantCaps = %s", canvas2d.GetFontVariantCaps());
+  println("textRendering   = %s", canvas2d.GetTextRendering());
+end;
+
+routine Update(const dt: float64);
+begin
+  if input.KeyPressed(input.KEY_ESCAPE) then
+    frame.Stop();
+  end;
+end;
+
+routine DrawText();
+var nLines: int32;
+var nFill: int32;
+var nStroke: int32;
+begin
+  canvas2d.Clear(20, 20, 30);
+  canvas2d.SetTextAlign(canvas2d.TEXT_ALIGN_LEFT);
+  canvas2d.SetTextBaseline(canvas2d.BASELINE_TOP);
+
+  canvas2d.SetFillStyle("#ffd54a");
+  canvas2d.SetFont("40px KenneyMiniSquareMono");
+  canvas2d.FillText("WASKAL TEXT", 20.0, 20.0);
+
+  canvas2d.SetFillStyle("#e0e0e0");
+  canvas2d.SetFont("22px JetBrainsMono");
+  canvas2d.SetFontVariantCaps(canvas2d.VARIANT_CAPS_SMALL);
+  nLines := canvas2d.FillTextLines("first line\nsecond line\nthird line", 20.0, 90.0, 28.0);
+  canvas2d.SetFontVariantCaps(canvas2d.VARIANT_CAPS_NORMAL);
+
+  canvas2d.SetFont("18px JetBrainsMono");
+  nFill := canvas2d.FillTextWrapped(PARA, 20.0, 200.0, 360.0, 24.0);
+
+  canvas2d.SetStrokeStyle("#4fc3f7");
+  canvas2d.SetLineWidth(1.0);
+  nStroke := canvas2d.StrokeTextWrapped(PARA, 420.0, 200.0, 360.0, 24.0);
+
+  canvas2d.SetFontVariantCaps(canvas2d.VARIANT_CAPS_SMALL);
+  if not drawn then
+    println("FillTextLines drew %d lines", nLines);
+    println("FillTextWrapped drew %d lines", nFill);
+    println("StrokeTextWrapped drew %d lines", nStroke);
+    PrintGetters();
+    drawn := true;
+  end;
+  canvas2d.SetFontVariantCaps(canvas2d.VARIANT_CAPS_NORMAL);
+
+  canvas2d.SetFillStyle("#888");
+  canvas2d.SetFont("16px JetBrainsMono");
+  canvas2d.FillText(format("%.0f fps  -  ESC to quit", frame.FPS()), 20.0, 560.0);
+end;
+
+routine Render();
+begin
+  if not canvas2d.FontsReady() then
+    canvas2d.Clear(20, 20, 30);
+    canvas2d.SetFillStyle("#888");
+    canvas2d.SetFont("16px sans-serif");
+    canvas2d.FillText("loading fonts...", 20.0, 40.0);
+  else
+    DrawText();
+  end;
+end;
+
+routine Shutdown();
+begin
+  println("text_rendering done");
+end;
+
+begin
+  canvas2d.Init(W, H);
+  canvas2d.SetPlacement(canvas2d.PLACE_FILL);
+  drawn := false;
+  if not canvas2d.LoadFont("JetBrainsMono", "assets/fonts/JetBrainsMonoRegular.ttf") then
+    println("LoadFont JetBrainsMono FAILED");
+  end;
+  if not canvas2d.LoadFont("KenneyMiniSquareMono", "assets/fonts/KenneyMiniSquareMono.ttf") then
+    println("LoadFont KenneyMiniSquareMono FAILED");
+  end;
+  frame.Run(Update, Render, Shutdown);
+end.

@@ -1,0 +1,162 @@
+/*******************************************************************************
+  Waskal™ Programming Language
+
+  Copyright © 2026-present tinyBigGAMES™ LLC
+  All Rights Reserved.
+
+  https://waskal.org
+
+  See LICENSE for license information
+ -------------------------------------------------------------------------------
+  bouncing_squares.wkl
+  Proves frame + canvas2d + input + localstorage compose. Bouncing squares
+  are drawn every frame with the live FPS; "seconds survived" runs until
+  ESC, and the best time is persisted with localstorage so it survives
+  reloads. The high score is written from the shutdown handler, which runs
+  before teardown whether the loop ended by ESC or by the page closing.
+*******************************************************************************/
+
+module exe bouncing_squares;
+
+import 
+  canvas2d,
+  frame,
+  input,
+  localstorage;
+
+@favicon "$P:res/assets/icons/waskal.ico";
+
+const
+  W = 800;
+  H = 600;
+  COUNT = 24;
+  SQ = 28.0;
+  BEST_KEY: string = "best_seconds";
+  TITLE: string = "Waskal Bouncing Squares";
+  HINT: string = "Press ESC to quit -- best time is saved";
+  FONT: string = "bold 24px sans-serif";
+  BG: string = "#101820";
+  TEXT_COLOUR: string = "rgba(255, 255, 255, 0.9)";
+  C0: string = "#ff7828";
+  C1: string = "#ffc83c";
+  C2: string = "#50c8ff";
+  C3: string = "#ff50b4";
+
+var
+  px: array[0..23] of float64;
+  py: array[0..23] of float64;
+  vx: array[0..23] of float64;
+  vy: array[0..23] of float64;
+  tint: array[0..23] of int32;
+  seed: int64;
+  best: float64;
+  survived: float64;
+
+// Small linear congruential generator; returns 0.0 .. 1.0
+routine Rnd(): float64;
+begin
+  seed := (seed * 1103515245 + 12345) mod 2147483648;
+  return float64(seed) / 2147483648.0;
+end;
+
+routine Spawn(const i: int32);
+begin
+  px[i] := Rnd() * (float64(W) - SQ);
+  py[i] := Rnd() * (float64(H) - SQ);
+  vx[i] := (Rnd() - 0.5) * 500.0;
+  vy[i] := (Rnd() - 0.5) * 500.0;
+  tint[i] := int32(Rnd() * 4.0);
+end;
+
+routine Update(const dt: float64);
+var i: int32;
+begin
+  if input.KeyPressed(input.KEY_ESCAPE) then
+    frame.Stop();
+  end;
+  survived := frame.Time();
+  i := 0;
+  while i < COUNT do
+    px[i] := px[i] + vx[i] * dt;
+    py[i] := py[i] + vy[i] * dt;
+    // Reflect off the edges, keeping the square inside the canvas
+    if px[i] < 0.0 then
+      px[i] := 0.0;
+      vx[i] := -vx[i];
+    end;
+    if px[i] > float64(W) - SQ then
+      px[i] := float64(W) - SQ;
+      vx[i] := -vx[i];
+    end;
+    if py[i] < 0.0 then
+      py[i] := 0.0;
+      vy[i] := -vy[i];
+    end;
+    if py[i] > float64(H) - SQ then
+      py[i] := float64(H) - SQ;
+      vy[i] := -vy[i];
+    end;
+    i := i + 1;
+  end;
+end;
+
+routine Render();
+var i: int32;
+begin
+  canvas2d.SetFillStyle(BG);
+  canvas2d.FillRect(0.0, 0.0, float64(W), float64(H));
+
+  i := 0;
+  while i < COUNT do
+    if tint[i] = 0 then
+      canvas2d.SetFillStyle(C0);
+    else
+      if tint[i] = 1 then
+        canvas2d.SetFillStyle(C1);
+      else
+        if tint[i] = 2 then
+          canvas2d.SetFillStyle(C2);
+        else
+          canvas2d.SetFillStyle(C3);
+        end;
+      end;
+    end;
+    canvas2d.FillRect(px[i], py[i], SQ, SQ);
+    i := i + 1;
+  end;
+
+  canvas2d.SetFont(FONT);
+  canvas2d.SetFillStyle(TEXT_COLOUR);
+  canvas2d.FillText(TITLE, 20.0, 36.0);
+  canvas2d.FillText(format("%.0f fps", frame.FPS()), 20.0, 66.0);
+  canvas2d.FillText(format("survived %.1f s   best %.1f s", survived, best), 20.0, 96.0);
+  canvas2d.FillText(HINT, 20.0, 126.0);
+end;
+
+// Runs before teardown, on ESC or page close: persist the high score.
+routine Shutdown();
+begin
+  if survived > best then
+    best := survived;
+    localstorage.SetFloat(BEST_KEY, best);
+    println("new best: %.1f s (saved)", best);
+  else
+    println("survived %.1f s, best stays %.1f s", survived, best);
+  end;
+end;
+
+var i: int32;
+begin
+  best := localstorage.GetFloat(BEST_KEY, 0.0);
+  println("best so far: %.1f s", best);
+  seed := 12345;
+  survived := 0.0;
+  canvas2d.Init(W, H);
+  i := 0;
+  while i < COUNT do
+    Spawn(i);
+    i := i + 1;
+  end;
+  frame.SetTargetFPS(60.0);
+  frame.Run(Update, Render, Shutdown);
+end.

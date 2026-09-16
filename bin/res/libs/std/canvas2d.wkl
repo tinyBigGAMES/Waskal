@@ -1,0 +1,595 @@
+/*******************************************************************************
+  Waskal™ Programming Language
+
+  Copyright © 2026-present tinyBigGAMES™ LLC
+  All Rights Reserved.
+
+  https://waskal.org
+
+  See LICENSE for license information
+ -------------------------------------------------------------------------------
+  canvas2d.wkl
+
+  Wraps the canvas2d.js shim (HTML5 Canvas 2D). Geometry is float64, sizes
+  and handles int32, colours/fonts/enums are CSS strings. Handle 0 = none.
+  Image sources are embedded assets by name.
+*******************************************************************************/
+
+module unit canvas2d;
+
+public type
+  // JS object handles (int32 indexes into the shim's handle tables)
+  Gradient = int32;
+  Pattern = int32;
+  Path = int32;
+  ImageData = int32;
+
+  // measureText() result -- 12 float64 fields, this exact order and layout
+  // is what MeasureTextInto writes (8 bytes each, little-endian)
+  TextMetrics = record
+    width: float64;
+    actualBoundingBoxLeft: float64;
+    actualBoundingBoxRight: float64;
+    actualBoundingBoxAscent: float64;
+    actualBoundingBoxDescent: float64;
+    fontBoundingBoxAscent: float64;
+    fontBoundingBoxDescent: float64;
+    emHeightAscent: float64;
+    emHeightDescent: float64;
+    hangingBaseline: float64;
+    alphabeticBaseline: float64;
+    ideographicBaseline: float64;
+  end;
+
+  // getTransform() result -- DOMMatrix a..f, 6 float64
+  Matrix = record
+    a: float64;
+    b: float64;
+    c: float64;
+    d: float64;
+    e: float64;
+    f: float64;
+  end;
+
+public const
+  // lineCap
+  LINE_CAP_BUTT = "butt";
+  LINE_CAP_ROUND = "round";
+  LINE_CAP_SQUARE = "square";
+  // lineJoin
+  LINE_JOIN_MITER = "miter";
+  LINE_JOIN_ROUND = "round";
+  LINE_JOIN_BEVEL = "bevel";
+  // fill rules
+  FILL_RULE_NON_ZERO = "nonzero";
+  FILL_RULE_EVEN_ODD = "evenodd";
+  // textAlign
+  TEXT_ALIGN_START = "start";
+  TEXT_ALIGN_END = "end";
+  TEXT_ALIGN_LEFT = "left";
+  TEXT_ALIGN_RIGHT = "right";
+  TEXT_ALIGN_CENTER = "center";
+  // textBaseline
+  BASELINE_TOP = "top";
+  BASELINE_HANGING = "hanging";
+  BASELINE_MIDDLE = "middle";
+  BASELINE_ALPHABETIC = "alphabetic";
+  BASELINE_IDEOGRAPHIC = "ideographic";
+  BASELINE_BOTTOM = "bottom";
+  // direction
+  DIRECTION_LTR = "ltr";
+  DIRECTION_RTL = "rtl";
+  DIRECTION_INHERIT = "inherit";
+  // fontKerning
+  KERNING_AUTO = "auto";
+  KERNING_NORMAL = "normal";
+  KERNING_NONE = "none";
+  // fontStretch
+  STRETCH_ULTRA_CONDENSED = "ultra-condensed";
+  STRETCH_EXTRA_CONDENSED = "extra-condensed";
+  STRETCH_CONDENSED = "condensed";
+  STRETCH_SEMI_CONDENSED = "semi-condensed";
+  STRETCH_NORMAL = "normal";
+  STRETCH_SEMI_EXPANDED = "semi-expanded";
+  STRETCH_EXPANDED = "expanded";
+  STRETCH_EXTRA_EXPANDED = "extra-expanded";
+  STRETCH_ULTRA_EXPANDED = "ultra-expanded";
+  // fontVariantCaps
+  VARIANT_CAPS_NORMAL = "normal";
+  VARIANT_CAPS_SMALL = "small-caps";
+  VARIANT_CAPS_ALL_SMALL = "all-small-caps";
+  VARIANT_CAPS_PETITE = "petite-caps";
+  VARIANT_CAPS_ALL_PETITE = "all-petite-caps";
+  VARIANT_CAPS_UNICASE = "unicase";
+  VARIANT_CAPS_TITLING = "titling-caps";
+  // textRendering
+  RENDERING_AUTO = "auto";
+  RENDERING_OPTIMIZE_SPEED = "optimizeSpeed";
+  RENDERING_OPTIMIZE_LEGIBILITY = "optimizeLegibility";
+  RENDERING_GEOMETRIC_PRECISION = "geometricPrecision";
+  // SetPlacement
+  PLACE_FLOW = "flow";
+  PLACE_CENTER = "center";
+  PLACE_FILL = "fill";
+  PLACE_WINDOW = "window";
+  // GetTextPropInto ids -- must match _TEXT_PROPS order in canvas2d.js
+  TEXT_PROP_FONT = 0;
+  TEXT_PROP_TEXT_ALIGN = 1;
+  TEXT_PROP_TEXT_BASELINE = 2;
+  TEXT_PROP_DIRECTION = 3;
+  TEXT_PROP_LETTER_SPACING = 4;
+  TEXT_PROP_WORD_SPACING = 5;
+  TEXT_PROP_FONT_KERNING = 6;
+  TEXT_PROP_FONT_STRETCH = 7;
+  TEXT_PROP_FONT_VARIANT_CAPS = 8;
+  TEXT_PROP_TEXT_RENDERING = 9;
+  // imageSmoothingQuality
+  SMOOTHING_LOW = "low";
+  SMOOTHING_MEDIUM = "medium";
+  SMOOTHING_HIGH = "high";
+  // globalCompositeOperation (26)
+  COMPOSITE_SOURCE_OVER = "source-over";
+  COMPOSITE_SOURCE_IN = "source-in";
+  COMPOSITE_SOURCE_OUT = "source-out";
+  COMPOSITE_SOURCE_ATOP = "source-atop";
+  COMPOSITE_DESTINATION_OVER = "destination-over";
+  COMPOSITE_DESTINATION_IN = "destination-in";
+  COMPOSITE_DESTINATION_OUT = "destination-out";
+  COMPOSITE_DESTINATION_ATOP = "destination-atop";
+  COMPOSITE_LIGHTER = "lighter";
+  COMPOSITE_COPY = "copy";
+  COMPOSITE_XOR = "xor";
+  COMPOSITE_MULTIPLY = "multiply";
+  COMPOSITE_SCREEN = "screen";
+  COMPOSITE_OVERLAY = "overlay";
+  COMPOSITE_DARKEN = "darken";
+  COMPOSITE_LIGHTEN = "lighten";
+  COMPOSITE_COLOR_DODGE = "color-dodge";
+  COMPOSITE_COLOR_BURN = "color-burn";
+  COMPOSITE_HARD_LIGHT = "hard-light";
+  COMPOSITE_SOFT_LIGHT = "soft-light";
+  COMPOSITE_DIFFERENCE = "difference";
+  COMPOSITE_EXCLUSION = "exclusion";
+  COMPOSITE_HUE = "hue";
+  COMPOSITE_SATURATION = "saturation";
+  COMPOSITE_COLOR = "color";
+  COMPOSITE_LUMINOSITY = "luminosity";
+
+// ---- Setup / canvas element ----
+// All sizes and coordinates are logical (CSS) pixels. The backing store is
+// logical * devicePixelRatio so drawing is crisp on high-DPI displays; the
+// user never sees the ratio. ImageData positions and sizes are logical too;
+// only the pixel buffer is dpr-dense (ImageDataWidth/Height report it).
+public routine Init(const w: int32; const h: int32);
+  external "canvas2d" name "Init";
+public routine InitOn(const id: ptr to char; const w: int32; const h: int32): bool;
+  external "canvas2d" name "InitOn";
+public routine Resize(const w: int32; const h: int32);
+  external "canvas2d" name "Resize";
+public routine Width(): int32;
+  external "canvas2d" name "Width";
+public routine Height(): int32;
+  external "canvas2d" name "Height";
+// Browser viewport size in CSS pixels (window.innerWidth/innerHeight).
+public routine ViewportWidth(): int32;
+  external "canvas2d" name "ViewportWidth";
+public routine ViewportHeight(): int32;
+  external "canvas2d" name "ViewportHeight";
+public routine SetBackground(const css: ptr to char);
+  external "canvas2d" name "SetBackground";
+// PLACE_FLOW   in the page flow with the dev console (default)
+// PLACE_CENTER app mode, centred, logical size unchanged
+// PLACE_FILL   app mode, scaled to the window keeping aspect (letterboxed),
+//              logical size unchanged -- draw in Init() pixels (games)
+// PLACE_WINDOW app mode, logical size follows the window automatically --
+//              read Width()/Height() each frame (apps)
+public routine SetPlacement(const mode: ptr to char);
+  external "canvas2d" name "SetPlacement";
+routine ToDataURLInto(const mime: ptr to char; const buf: ptr to char; const bufSize: int64): int64;
+  external "canvas2d" name "ToDataURL";
+
+// ---- State ----
+public routine Save();
+  external "canvas2d" name "Save";
+public routine Restore();
+  external "canvas2d" name "Restore";
+public routine Reset();
+  external "canvas2d" name "Reset";
+
+// ---- Rectangles ----
+public routine ClearRect(const x: float64; const y: float64; const w: float64; const h: float64);
+  external "canvas2d" name "ClearRect";
+public routine FillRect(const x: float64; const y: float64; const w: float64; const h: float64);
+  external "canvas2d" name "FillRect";
+public routine StrokeRect(const x: float64; const y: float64; const w: float64; const h: float64);
+  external "canvas2d" name "StrokeRect";
+
+// ---- Path building ----
+public routine BeginPath();
+  external "canvas2d" name "BeginPath";
+public routine ClosePath();
+  external "canvas2d" name "ClosePath";
+public routine MoveTo(const x: float64; const y: float64);
+  external "canvas2d" name "MoveTo";
+public routine LineTo(const x: float64; const y: float64);
+  external "canvas2d" name "LineTo";
+public routine Arc(const x: float64; const y: float64; const r: float64; const startAngle: float64; const endAngle: float64; const counterclockwise: bool);
+  external "canvas2d" name "Arc";
+public routine ArcTo(const x1: float64; const y1: float64; const x2: float64; const y2: float64; const r: float64);
+  external "canvas2d" name "ArcTo";
+public routine BezierCurveTo(const cp1x: float64; const cp1y: float64; const cp2x: float64; const cp2y: float64; const x: float64; const y: float64);
+  external "canvas2d" name "BezierCurveTo";
+public routine QuadraticCurveTo(const cpx: float64; const cpy: float64; const x: float64; const y: float64);
+  external "canvas2d" name "QuadraticCurveTo";
+public routine Ellipse(const x: float64; const y: float64; const rx: float64; const ry: float64; const rotation: float64; const startAngle: float64; const endAngle: float64; const counterclockwise: bool);
+  external "canvas2d" name "Ellipse";
+public routine PathRect(const x: float64; const y: float64; const w: float64; const h: float64);
+  external "canvas2d" name "Rect";
+public routine RoundRect(const x: float64; const y: float64; const w: float64; const h: float64; const radius: float64);
+  external "canvas2d" name "RoundRect";
+public routine RoundRect4(const x: float64; const y: float64; const w: float64; const h: float64; const tl: float64; const tr: float64; const br: float64; const bl: float64);
+  external "canvas2d" name "RoundRect4";
+
+// ---- Path drawing ----
+public routine Fill();
+  external "canvas2d" name "Fill";
+public routine FillRule(const rule: ptr to char);
+  external "canvas2d" name "FillRule";
+public routine Stroke();
+  external "canvas2d" name "Stroke";
+public routine Clip();
+  external "canvas2d" name "Clip";
+public routine ClipRule(const rule: ptr to char);
+  external "canvas2d" name "ClipRule";
+public routine FillPath(const p: Path);
+  external "canvas2d" name "FillPath";
+public routine FillPathRule(const p: Path; const rule: ptr to char);
+  external "canvas2d" name "FillPathRule";
+public routine StrokePath(const p: Path);
+  external "canvas2d" name "StrokePath";
+public routine ClipPath(const p: Path);
+  external "canvas2d" name "ClipPath";
+public routine IsPointInPath(const x: float64; const y: float64): bool;
+  external "canvas2d" name "IsPointInPath";
+public routine IsPointInPathRule(const x: float64; const y: float64; const rule: ptr to char): bool;
+  external "canvas2d" name "IsPointInPathRule";
+public routine IsPointInStroke(const x: float64; const y: float64): bool;
+  external "canvas2d" name "IsPointInStroke";
+public routine IsPointInPath2D(const p: Path; const x: float64; const y: float64): bool;
+  external "canvas2d" name "IsPointInPath2D";
+public routine IsPointInStroke2D(const p: Path; const x: float64; const y: float64): bool;
+  external "canvas2d" name "IsPointInStroke2D";
+
+// ---- Path2D objects ----
+public routine PathCreate(): Path;
+  external "canvas2d" name "PathCreate";
+public routine PathCreateSVG(const d: ptr to char): Path;
+  external "canvas2d" name "PathCreateSVG";
+public routine PathRelease(const p: Path);
+  external "canvas2d" name "PathRelease";
+public routine PathMoveTo(const p: Path; const x: float64; const y: float64);
+  external "canvas2d" name "PathMoveTo";
+public routine PathLineTo(const p: Path; const x: float64; const y: float64);
+  external "canvas2d" name "PathLineTo";
+public routine PathArc(const p: Path; const x: float64; const y: float64; const r: float64; const startAngle: float64; const endAngle: float64; const counterclockwise: bool);
+  external "canvas2d" name "PathArc";
+public routine PathArcTo(const p: Path; const x1: float64; const y1: float64; const x2: float64; const y2: float64; const r: float64);
+  external "canvas2d" name "PathArcTo";
+public routine PathBezierCurveTo(const p: Path; const cp1x: float64; const cp1y: float64; const cp2x: float64; const cp2y: float64; const x: float64; const y: float64);
+  external "canvas2d" name "PathBezierCurveTo";
+public routine PathQuadraticCurveTo(const p: Path; const cpx: float64; const cpy: float64; const x: float64; const y: float64);
+  external "canvas2d" name "PathQuadraticCurveTo";
+public routine PathEllipse(const p: Path; const x: float64; const y: float64; const rx: float64; const ry: float64; const rotation: float64; const startAngle: float64; const endAngle: float64; const counterclockwise: bool);
+  external "canvas2d" name "PathEllipse";
+public routine PathAddRect(const p: Path; const x: float64; const y: float64; const w: float64; const h: float64);
+  external "canvas2d" name "PathRect";
+public routine PathRoundRect(const p: Path; const x: float64; const y: float64; const w: float64; const h: float64; const radius: float64);
+  external "canvas2d" name "PathRoundRect";
+public routine PathClosePath(const p: Path);
+  external "canvas2d" name "PathClosePath";
+public routine PathAddPath(const dst: Path; const src: Path);
+  external "canvas2d" name "PathAddPath";
+
+// ---- Line styles ----
+public routine SetLineWidth(const w: float64);
+  external "canvas2d" name "SetLineWidth";
+public routine GetLineWidth(): float64;
+  external "canvas2d" name "GetLineWidth";
+public routine SetLineCap(const cap: ptr to char);
+  external "canvas2d" name "SetLineCap";
+public routine SetLineJoin(const j: ptr to char);
+  external "canvas2d" name "SetLineJoin";
+public routine SetMiterLimit(const m: float64);
+  external "canvas2d" name "SetMiterLimit";
+public routine SetLineDash(const segs: ptr to float64; const count: int32);
+  external "canvas2d" name "SetLineDash";
+public routine SetLineDashOffset(const o: float64);
+  external "canvas2d" name "SetLineDashOffset";
+
+// ---- Fill / stroke style ----
+public routine SetFillStyle(const css: ptr to char);
+  external "canvas2d" name "SetFillStyle";
+public routine SetStrokeStyle(const css: ptr to char);
+  external "canvas2d" name "SetStrokeStyle";
+public routine SetFillRGB(const r: int32; const g: int32; const b: int32);
+  external "canvas2d" name "SetFillRGB";
+public routine SetStrokeRGB(const r: int32; const g: int32; const b: int32);
+  external "canvas2d" name "SetStrokeRGB";
+public routine SetFillGradient(const g: Gradient);
+  external "canvas2d" name "SetFillGradient";
+public routine SetStrokeGradient(const g: Gradient);
+  external "canvas2d" name "SetStrokeGradient";
+public routine SetFillPattern(const p: Pattern);
+  external "canvas2d" name "SetFillPattern";
+public routine SetStrokePattern(const p: Pattern);
+  external "canvas2d" name "SetStrokePattern";
+
+// ---- Gradients / patterns ----
+public routine CreateLinearGradient(const x0: float64; const y0: float64; const x1: float64; const y1: float64): Gradient;
+  external "canvas2d" name "CreateLinearGradient";
+public routine CreateRadialGradient(const x0: float64; const y0: float64; const r0: float64; const x1: float64; const y1: float64; const r1: float64): Gradient;
+  external "canvas2d" name "CreateRadialGradient";
+public routine CreateConicGradient(const startAngle: float64; const x: float64; const y: float64): Gradient;
+  external "canvas2d" name "CreateConicGradient";
+public routine AddColorStop(const g: Gradient; const offset: float64; const css: ptr to char);
+  external "canvas2d" name "AddColorStop";
+public routine CreatePattern(const assetName: ptr to char; const repetition: ptr to char): Pattern;
+  external "canvas2d" name "CreatePattern";
+public routine GradientRelease(const g: Gradient);
+  external "canvas2d" name "GradientRelease";
+public routine PatternRelease(const p: Pattern);
+  external "canvas2d" name "PatternRelease";
+
+// ---- Compositing / alpha / filter ----
+public routine SetGlobalAlpha(const a: float64);
+  external "canvas2d" name "SetGlobalAlpha";
+public routine GetGlobalAlpha(): float64;
+  external "canvas2d" name "GetGlobalAlpha";
+public routine SetGlobalCompositeOperation(const op: ptr to char);
+  external "canvas2d" name "SetGlobalCompositeOperation";
+public routine SetFilter(const css: ptr to char);
+  external "canvas2d" name "SetFilter";
+
+// ---- Shadows ----
+public routine SetShadowColor(const css: ptr to char);
+  external "canvas2d" name "SetShadowColor";
+public routine SetShadowBlur(const b: float64);
+  external "canvas2d" name "SetShadowBlur";
+public routine SetShadowOffsetX(const x: float64);
+  external "canvas2d" name "SetShadowOffsetX";
+public routine SetShadowOffsetY(const y: float64);
+  external "canvas2d" name "SetShadowOffsetY";
+
+// ---- Text ----
+public routine SetFont(const css: ptr to char);
+  external "canvas2d" name "SetFont";
+public routine SetTextAlign(const a: ptr to char);
+  external "canvas2d" name "SetTextAlign";
+public routine SetTextBaseline(const b: ptr to char);
+  external "canvas2d" name "SetTextBaseline";
+public routine SetDirection(const d: ptr to char);
+  external "canvas2d" name "SetDirection";
+public routine SetLetterSpacing(const css: ptr to char);
+  external "canvas2d" name "SetLetterSpacing";
+public routine SetWordSpacing(const css: ptr to char);
+  external "canvas2d" name "SetWordSpacing";
+public routine SetFontKerning(const k: ptr to char);
+  external "canvas2d" name "SetFontKerning";
+public routine SetFontStretch(const s: ptr to char);
+  external "canvas2d" name "SetFontStretch";
+public routine SetTextRendering(const r: ptr to char);
+  external "canvas2d" name "SetTextRendering";
+public routine SetFontVariantCaps(const v: ptr to char);
+  external "canvas2d" name "SetFontVariantCaps";
+routine GetTextPropInto(const id: int32; const buf: ptr to char; const bufSize: int64): int64;
+  external "canvas2d" name "GetTextPropInto";
+public routine FillText(const text: ptr to char; const x: float64; const y: float64);
+  external "canvas2d" name "FillText";
+public routine FillTextMax(const text: ptr to char; const x: float64; const y: float64; const maxWidth: float64);
+  external "canvas2d" name "FillTextMax";
+public routine StrokeText(const text: ptr to char; const x: float64; const y: float64);
+  external "canvas2d" name "StrokeText";
+public routine StrokeTextMax(const text: ptr to char; const x: float64; const y: float64; const maxWidth: float64);
+  external "canvas2d" name "StrokeTextMax";
+public routine MeasureTextWidth(const text: ptr to char): float64;
+  external "canvas2d" name "MeasureTextWidth";
+routine MeasureTextInto(const text: ptr to char; const outPtr: ptr to TextMetrics);
+  external "canvas2d" name "MeasureTextInto";
+public routine FillTextLines(const text: ptr to char; const x: float64; const y: float64; const lineHeight: float64): int32;
+  external "canvas2d" name "FillTextLines";
+public routine StrokeTextLines(const text: ptr to char; const x: float64; const y: float64; const lineHeight: float64): int32;
+  external "canvas2d" name "StrokeTextLines";
+public routine FillTextWrapped(const text: ptr to char; const x: float64; const y: float64; const maxWidth: float64; const lineHeight: float64): int32;
+  external "canvas2d" name "FillTextWrapped";
+public routine StrokeTextWrapped(const text: ptr to char; const x: float64; const y: float64; const maxWidth: float64; const lineHeight: float64): int32;
+  external "canvas2d" name "StrokeTextWrapped";
+public routine LoadFont(const family: ptr to char; const asset: ptr to char): bool;
+  external "canvas2d" name "LoadFont";
+public routine FontsReady(): bool;
+  external "canvas2d" name "FontsReady";
+
+// ---- Transforms ----
+public routine Translate(const x: float64; const y: float64);
+  external "canvas2d" name "Translate";
+public routine Rotate(const angle: float64);
+  external "canvas2d" name "Rotate";
+public routine Scale(const x: float64; const y: float64);
+  external "canvas2d" name "Scale";
+public routine Transform(const a: float64; const b: float64; const c: float64; const d: float64; const e: float64; const f: float64);
+  external "canvas2d" name "Transform";
+public routine SetTransform(const a: float64; const b: float64; const c: float64; const d: float64; const e: float64; const f: float64);
+  external "canvas2d" name "SetTransform";
+public routine ResetTransform();
+  external "canvas2d" name "ResetTransform";
+routine GetTransformInto(const outPtr: ptr to Matrix);
+  external "canvas2d" name "GetTransform";
+
+// ---- Images (embedded assets by name) ----
+public routine DrawImageAt(const asset: ptr to char; const dx: float64; const dy: float64);
+  external "canvas2d" name "DrawImage";
+public routine DrawImageSize(const asset: ptr to char; const dx: float64; const dy: float64; const dw: float64; const dh: float64);
+  external "canvas2d" name "DrawImageSize";
+public routine DrawImageRect(const asset: ptr to char; const sx: float64; const sy: float64; const sw: float64; const sh: float64; const dx: float64; const dy: float64; const dw: float64; const dh: float64);
+  external "canvas2d" name "DrawImageRect";
+public routine SetImageSmoothingEnabled(const on: bool);
+  external "canvas2d" name "SetImageSmoothingEnabled";
+public routine SetImageSmoothingQuality(const q: ptr to char);
+  external "canvas2d" name "SetImageSmoothingQuality";
+public routine ImageWidth(const asset: ptr to char): int32;
+  external "canvas2d" name "ImageWidth";
+public routine ImageHeight(const asset: ptr to char): int32;
+  external "canvas2d" name "ImageHeight";
+
+// ---- Pixels (ImageData) ----
+public routine CreateImageData(const w: int32; const h: int32): ImageData;
+  external "canvas2d" name "CreateImageData";
+public routine GetImageData(const x: int32; const y: int32; const w: int32; const h: int32): ImageData;
+  external "canvas2d" name "GetImageData";
+public routine ImageDataWidth(const d: ImageData): int32;
+  external "canvas2d" name "ImageDataWidth";
+public routine ImageDataHeight(const d: ImageData): int32;
+  external "canvas2d" name "ImageDataHeight";
+public routine ImageDataRead(const d: ImageData; const buf: ptr to uint8; const bufSize: int64): int64;
+  external "canvas2d" name "ImageDataRead";
+public routine ImageDataWrite(const d: ImageData; const buf: ptr to uint8; const bufSize: int64);
+  external "canvas2d" name "ImageDataWrite";
+public routine PutImageData(const d: ImageData; const dx: float64; const dy: float64);
+  external "canvas2d" name "PutImageData";
+public routine PutImageDataDirty(const d: ImageData; const dx: float64; const dy: float64; const dirtyX: float64; const dirtyY: float64; const dirtyW: float64; const dirtyH: float64);
+  external "canvas2d" name "PutImageDataDirty";
+public routine ImageDataRelease(const d: ImageData);
+  external "canvas2d" name "ImageDataRelease";
+
+// ---- Wrappers (non-extern) ----
+
+// measureText into a caller record
+public routine MeasureText(const text: string; var m: TextMetrics);
+begin
+  MeasureTextInto(text, address of m);
+end;
+
+// getTransform into a caller record
+public routine GetTransform(var m: Matrix);
+begin
+  GetTransformInto(address of m);
+end;
+
+// canvas.toDataURL -> Waskal string (length query, allocate, fill, copy)
+public routine ToDataURL(const mime: string): string;
+var 
+  needed: int64;
+  buf: ptr to char;
+  s: string;
+begin
+  needed := ToDataURLInto(mime, nil, 0);
+  getmem(buf);
+  resizemem(buf, needed + 1);
+  ToDataURLInto(mime, buf, needed + 1);
+  s := buf;
+  freemem(buf);
+  return s;
+end;
+
+// Text drawing-style getter -> Waskal string (same length-query dance as ToDataURL)
+routine GetTextProp(const id: int32): string;
+var
+  needed: int64;
+  buf: ptr to char;
+  s: string;
+begin
+  needed := GetTextPropInto(id, nil, 0);
+  getmem(buf);
+  resizemem(buf, needed + 1);
+  GetTextPropInto(id, buf, needed + 1);
+  s := buf;
+  freemem(buf);
+  return s;
+end;
+
+public routine GetFont(): string;
+begin
+  return GetTextProp(TEXT_PROP_FONT);
+end;
+
+public routine GetTextAlign(): string;
+begin
+  return GetTextProp(TEXT_PROP_TEXT_ALIGN);
+end;
+
+public routine GetTextBaseline(): string;
+begin
+  return GetTextProp(TEXT_PROP_TEXT_BASELINE);
+end;
+
+public routine GetDirection(): string;
+begin
+  return GetTextProp(TEXT_PROP_DIRECTION);
+end;
+
+public routine GetLetterSpacing(): string;
+begin
+  return GetTextProp(TEXT_PROP_LETTER_SPACING);
+end;
+
+public routine GetWordSpacing(): string;
+begin
+  return GetTextProp(TEXT_PROP_WORD_SPACING);
+end;
+
+public routine GetFontKerning(): string;
+begin
+  return GetTextProp(TEXT_PROP_FONT_KERNING);
+end;
+
+public routine GetFontStretch(): string;
+begin
+  return GetTextProp(TEXT_PROP_FONT_STRETCH);
+end;
+
+public routine GetFontVariantCaps(): string;
+begin
+  return GetTextProp(TEXT_PROP_FONT_VARIANT_CAPS);
+end;
+
+public routine GetTextRendering(): string;
+begin
+  return GetTextProp(TEXT_PROP_TEXT_RENDERING);
+end;
+
+// Convenience API (kept for the existing demos; int32 pixel coords, RGB ints)
+public routine Clear(const r: int32; const g: int32; const b: int32);
+begin
+  SetFillRGB(r, g, b);
+  FillRect(0.0, 0.0, float64(Width()), float64(Height()));
+end;
+
+public routine Rect(const x: int32; const y: int32; const w: int32; const h: int32; const r: int32; const g: int32; const b: int32);
+begin
+  SetFillRGB(r, g, b);
+  FillRect(float64(x), float64(y), float64(w), float64(h));
+end;
+
+public routine Circle(const x: int32; const y: int32; const radius: int32; const r: int32; const g: int32; const b: int32);
+begin
+  SetFillRGB(r, g, b);
+  BeginPath();
+  Arc(float64(x), float64(y), float64(radius), 0.0, 6.283185307179586, false);
+  Fill();
+end;
+
+public routine Line(const x1: int32; const y1: int32; const x2: int32; const y2: int32; const r: int32; const g: int32; const b: int32; const width: int32);
+begin
+  SetStrokeRGB(r, g, b);
+  SetLineWidth(float64(width));
+  BeginPath();
+  MoveTo(float64(x1), float64(y1));
+  LineTo(float64(x2), float64(y2));
+  Stroke();
+end;
+
+public routine DrawImage(const asset: string; const x: int32; const y: int32; const w: int32; const h: int32);
+begin
+  DrawImageSize(asset, float64(x), float64(y), float64(w), float64(h));
+end;
+
+end.

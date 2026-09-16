@@ -1,0 +1,201 @@
+/*******************************************************************************
+  Waskal™ Programming Language
+
+  Copyright © 2026-present tinyBigGAMES™ LLC
+  All Rights Reserved.
+
+  https://waskal.org
+
+  See LICENSE for license information
+ -------------------------------------------------------------------------------
+  video_player.wkl
+  Proves the video std module with one clip per format: intro.mp4 and
+  explainer.webm. TAB switches clip. SPACE play / pause, S stop, L loop,
+  M mute, LEFT / RIGHT seek 5 s, D toggles between drawing the frame onto
+  the canvas and showing the element itself centred over the page.
+  Click or press any key first -- the browser will not play sound before a
+  gesture. ESC quits.
+*******************************************************************************/
+
+module exe video_player;
+
+import
+  canvas2d,
+  frame,
+  input,
+  video;
+
+@favicon "$P:res/assets/icons/waskal.ico";
+@asset "$P:res/assets/video/intro.mp4" "assets/video";
+@asset "$P:res/assets/video/explainer.webm" "assets/video";
+
+const
+  W = 960;
+  H = 600;
+  VIEW_X = 20.0;
+  VIEW_Y = 200.0;
+  VIEW_W = 640.0;
+  VIEW_H = 360.0;
+  TITLE: string = "Waskal Video";
+  FONT: string = "bold 22px sans-serif";
+  SMALL: string = "16px sans-serif";
+  BG: string = "#101820";
+  TEXT_COLOUR: string = "rgba(255, 255, 255, 0.9)";
+  DIM: string = "rgba(255, 255, 255, 0.5)";
+  ACCENT: string = "#ffc83c";
+
+var
+  clips: array[0..1] of video.Video;
+  cur: int32;
+  drawMode: bool;
+  looping: bool;
+
+routine Current(): video.Video;
+begin
+  return clips[cur];
+end;
+
+routine ClipName(): string;
+begin
+  if cur = 0 then
+    return "intro.mp4";
+  else
+    return "explainer.webm";
+  end;
+end;
+
+routine ApplyDisplay();
+begin
+  if drawMode then
+    video.Hide(Current());
+  else
+    video.Show(Current(), video.PLACE_CENTER);
+  end;
+end;
+
+routine Update(const dt: float64);
+var v: video.Video;
+begin
+  v := Current();
+
+  if input.KeyPressed(input.KEY_ESCAPE) then
+    frame.Stop();
+  end;
+
+  if input.KeyPressed(input.KEY_TAB) then
+    video.Stop(v);
+    video.Hide(v);
+    cur := 1 - cur;
+    ApplyDisplay();
+  end;
+
+  if input.KeyPressed(input.KEY_SPACE) then
+    if video.IsPlaying(v) then
+      video.Pause(v);
+    else
+      video.Play(v);
+    end;
+  end;
+  if input.KeyPressed(input.KEY_S) then
+    video.Stop(v);
+  end;
+  if input.KeyPressed(input.KEY_L) then
+    looping := not looping;
+    video.SetLoop(v, looping);
+  end;
+  if input.KeyPressed(input.KEY_M) then
+    video.SetMuted(v, not video.IsMuted(v));
+  end;
+  if input.KeyPressed(input.KEY_LEFT) then
+    video.Seek(v, video.Position(v) - 5.0);
+  end;
+  if input.KeyPressed(input.KEY_RIGHT) then
+    video.Seek(v, video.Position(v) + 5.0);
+  end;
+  if input.KeyPressed(input.KEY_D) then
+    drawMode := not drawMode;
+    ApplyDisplay();
+  end;
+end;
+
+routine Render();
+var 
+  v: video.Video;
+  state: string;
+  flags: string;
+begin
+  v := Current();
+
+  canvas2d.SetFillStyle(BG);
+  canvas2d.FillRect(0.0, 0.0, float64(W), float64(H));
+
+  canvas2d.SetFont(FONT);
+  canvas2d.SetFillStyle(TEXT_COLOUR);
+  canvas2d.FillText(TITLE, 20.0, 40.0);
+
+  canvas2d.SetFont(SMALL);
+  canvas2d.SetFillStyle(ACCENT);
+  canvas2d.FillText(format("clip: %s   (TAB switches)", ClipName()), 20.0, 70.0);
+
+  canvas2d.SetFillStyle(TEXT_COLOUR);
+  canvas2d.FillText("SPACE play / pause   S stop   L loop   M mute   LEFT / RIGHT seek 5s", 20.0, 100.0);
+  canvas2d.FillText("D     draw-to-canvas / show element     ESC quit", 20.0, 125.0);
+
+  canvas2d.SetFillStyle(DIM);
+  if video.IsPlaying(v) then
+    state := "playing";
+  else
+    if video.IsEnded(v) then
+      state := "ended";
+    else
+      state := "paused";
+    end;
+  end;
+  canvas2d.FillText(format("%s   %.1f / %.1f s   %dx%d",
+    state, video.Position(v), video.Duration(v), video.Width(v), video.Height(v)), 20.0, 160.0);
+  if looping then
+    flags := "loop on";
+  else
+    flags := "loop off";
+  end;
+  if video.IsMuted(v) then
+    flags := flags + "   muted";
+  end;
+  if video.IsReady(v) then
+    flags := flags + "   ready";
+  else
+    flags := flags + "   buffering";
+  end;
+  canvas2d.FillText(flags, 20.0, 180.0);
+
+  if drawMode then
+    canvas2d.SetFillStyle("#000000");
+    canvas2d.FillRect(VIEW_X, VIEW_Y, VIEW_W, VIEW_H);
+    video.Draw(v, VIEW_X, VIEW_Y, VIEW_W, VIEW_H);
+  else
+    canvas2d.SetFillStyle(DIM);
+    canvas2d.FillText("element shown centred over the page", VIEW_X, VIEW_Y + 20.0);
+  end;
+
+  canvas2d.SetFillStyle(ACCENT);
+  canvas2d.FillText(format("%.0f fps", frame.FPS()), 20.0, 580.0);
+end;
+
+routine Shutdown();
+begin
+  video.Stop(clips[0]);
+  video.Stop(clips[1]);
+  println("video_player: done");
+end;
+
+begin
+  cur := 0;
+  drawMode := true;
+  looping := false;
+  canvas2d.Init(W, H);
+  clips[0] := video.Load("assets/video/intro.mp4");
+  clips[1] := video.Load("assets/video/explainer.webm");
+  ApplyDisplay();
+  frame.SetTargetFPS(60.0);
+  frame.Run(Update, Render, Shutdown);
+end.
