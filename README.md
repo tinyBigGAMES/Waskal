@@ -180,7 +180,7 @@ Optimization is set by the `@optimize` directive or the `-opt` flag: `none` (def
 
 ## 🔨 Getting Waskal
 
-**[Download ZIP](https://github.com/tinyBigGAMES/Waskal/archive/refs/heads/main.zip)** or fork the repo, extract it, and put `bin\` on your `PATH`. There is nothing else.
+Grab the latest release from **[Releases](https://github.com/tinyBigGAMES/Waskal/releases)**, extract it, and put `bin\` on your `PATH`. There is nothing else.
 
 ```
 waskal hello
