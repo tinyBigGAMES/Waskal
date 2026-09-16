@@ -25,6 +25,15 @@ waskal hello
 
 The output is `hello.html`. Open it in a browser. That is the deployment.
 
+### Four pillars
+
+| Pillar | Principle |
+|--------|-----------|
+| 🌐 **The browser is the universal operating system** | Every device with a screen already has one. It handles graphics, audio, input, networking, storage, threading. Waskal does not reinvent any of it. |
+| ⚙️ **WebAssembly is the machine code** | wasm64 is the compile target -- portable, sandboxed, near-native speed, and the same binary runs on every OS the browser does. |
+| 📜 **JavaScript is the device driver** | All platform access flows through thin JS shims. The wasm module declares imports; the JS layer satisfies them. Swap the JS layer and the same binary runs in Node, Deno, or any wasm64-capable host. |
+| 📦 **HTML is the single-file executable** | One `.html` carries the runtime, the JS host layer, the assets, and the base64-encoded wasm binary. No installer, no dependencies, no moving parts. |
+
 ## 🎬 Media
 
 <div align="center">
@@ -47,7 +56,7 @@ https://github.com/user-attachments/assets/a4777b60-1271-47f6-87bc-dc0aae9514ca
 | A framework, a runtime | The wasm module does the computing. The browser does everything else: display, audio, input, filesystem, networking. |
 | A web server | The output works from `file://`. No hosting, no CORS configuration, no localhost. |
 | wasm-bindgen, Emscripten, a JS glue layer | Every `external` declaration is a wasm import. The built-in WASI64 shim and your own `.js` files satisfy them, bundled and minified into the same file. |
-| A native toolchain | The compiler is one executable. `wasm-opt` and `esbuild` ship alongside it as standalone binaries with no runtime dependencies. |
+| A native toolchain | The compiler is one executable. `wasm-opt`, `esbuild`, and `wasm-merge` ship alongside it as standalone binaries with no runtime dependencies. |
 
 ## 🎯 Who is Waskal for?
 
@@ -105,7 +114,7 @@ begin
 end.
 ```
 
-- **Sixteen primitive types** with exact sizes, every one mapping to a wasm value type: `int8` to `uint64`, `float32`, `float64`, `char`, `wchar`, `boolean`, `pointer`, and managed `string` (UTF-8) and `wstring` (UTF-16).
+- **Eighteen primitive types** with exact sizes, every one mapping to a wasm value type: `int8` to `uint64`, `float32`, `float64`, `char`, `wchar`, `bool`, `ptr`, `varargs`, and managed `string` (UTF-8) and `wstring` (UTF-16).
 - **Records that lay out the way you declare them**: inheritance, `packed`, `align(n)`, overlays (unions), anonymous overlays for tagged unions, bit fields, named record literals.
 - **Routines**: one keyword for functions and procedures, `const` and `var` parameters, local sections, first-class routine types, overloading, forward declarations, variadics with `varargs`.
 - **Control flow**: `if`, `while`, `for` and `downto`, `repeat`, `match` with ranges and lists, `break`, `continue`, compound assignment.
@@ -114,8 +123,11 @@ end.
 - **64-bit memory**: built on memory64. Pointers are `i64`, the address space grows past 4GB, and `new`/`dispose`/`getmem`/`freemem`/`resizemem` operate on linear memory.
 - **Sets** as stack bitmasks of up to 64 elements: union, intersection, difference and membership are single instructions.
 - **Modules**: `exe`, `lib`, `unit`. Private by default, `public` to export, always qualified on import, `initialize` and `finalize` on every kind.
-- **Conditional compilation**: `@define`, `@ifdef`, `@ifndef`, `@elseif`, `@else`, `@endif` with `WASKAL`, `WASM64`, `DEBUG`, `RELEASE`, `BUILD_EXE`, `BUILD_LIB`, `BUILD_UNIT`.
+- **Conditional compilation**: `@define`, `@undef`, `@ifdef`, `@ifndef`, `@elseif`, `@else`, `@endif` with `WASKAL`, `WASM64`, `BUILD_EXE`, `BUILD_LIB`.
 - **Built-in unit testing**: `test "name" begin ... end;` blocks after `end.`, enabled by `@unittestmode on;`, with `assert`, `asserteq`, `asserteqf`, `assertnil`, `assertnotnil`, `assertfail` and more. Runs in the browser, reports to the console.
+- **Embedded assets**: `@asset` and `@assets` directives deflate-compress files and base64-encode them into the `.html`. At runtime they decompress into an in-memory filesystem.
+- **Seven optimization levels**: `none` through `4`, plus `s` and `z` for size. Each maps to a wasm-opt pass.
+- **Standard library**: six built-in modules ship with the compiler -- `frame` (game loop), `canvas2d` (2D drawing), `input` (keyboard/mouse/gamepad), `audio` (sound and music), `video` (playback), `localstorage` (persistence).
 - **Embedded favicon** through the `@favicon` directive. No extra file.
 
 ## 🔗 Calling JavaScript
@@ -144,18 +156,19 @@ A `module lib` produces a bare `.wasm` with no runtime, no JavaScript and no HTM
 
 ## ⚙️ The pipeline
 
-Lexer, parser, semantic analysis and the wasm emitter all live in the compiler itself. Two bundled tools handle optimization and minification.
+Lexer, parser, semantic analysis and the wasm emitter all live in the compiler itself. Three bundled tools handle optimization, minification, and library merging.
 
-1. **Lexer**, keywords and the sixteen primitive types registered, not hardcoded
+1. **Lexer**, keywords and the eighteen primitive types registered, not hardcoded
 2. **Parser**, recursive descent for declarations and statements, Pratt for expressions; resolves `@ifdef` at parse time
 3. **Semantic analysis**, every type, symbol, cross-module reference and directive resolved once and recorded on the AST
 4. **Wasm emitter**, walks the enriched AST and writes `.wat`: memory64, exception handling, data and table sections, plus the hand-written runtime
 5. **wasm-opt** (bundled Binaryen), assembles, validates, optimizes and strips the `.wat` into a compact `.wasm`
 6. **esbuild** (bundled), concatenates the WASI64 shim, host APIs and your JS libs, then minifies to one block
-7. **Build driver**, base64-encodes the `.wasm`, injects it and the JS into the HTML template, optionally embeds a favicon
-8. **hello.html**, or `hello.wasm` for a `lib` module
+7. **wasm-merge** (bundled Binaryen), activates only when the program declares an external `.wasm` library -- merges the program module with external wasm modules into one binary
+8. **Build driver**, base64-encodes the `.wasm`, injects it and the JS into the HTML template, optionally embeds a favicon
+9. **hello.html**, or `hello.wasm` for a `lib` module
 
-Optimization is set by the `@optimize` directive: `none` (default, heap leak tracking active), `s`, `z`, `1`, `2`, `3`, `4`. `DEBUG` is defined at `none`; `RELEASE` at any other level.
+Optimization is set by the `@optimize` directive or the `-opt` flag: `none` (default, heap leak tracking active), `1`, `2`, `3`, `4`, `s`, `z`.
 
 ## 📖 Documentation
 
@@ -178,7 +191,7 @@ Pass the source name without the `.wkl` extension. The output lands next to the 
 | **Host OS** | Windows 10/11 x64 |
 | **Target** | Any modern browser with wasm64 (memory64) support |
 | **Runtime dependencies** | None |
-| **External toolchain** | None. `wasm-opt` and `esbuild` are bundled in `bin\res\wasm\` |
+| **External toolchain** | None. `wasm-opt`, `esbuild`, and `wasm-merge` are bundled in `bin\res\wasm\` |
 | **Running the output** | Double-click the `.html`, or serve it from anywhere |
 
 ## 🔧 Building the compiler from source
